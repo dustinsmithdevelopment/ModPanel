@@ -1,16 +1,26 @@
 import 'horizon/core';
-import {UIComponent, View, Text, UINode, Binding, Callback, ViewStyle, Pressable} from 'horizon/ui';
+
+// TODO Track player entering and exiting the world
+
+
+import {UIComponent, View, Text, UINode, Binding, Callback, Pressable, DynamicList, ColorValue} from 'horizon/ui';
+import {Player} from "horizon/core";
 
 const header1 = Text({text: 'Mod Panel', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
 const header2 = Text({text: 'Created by TechGryphon', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
 const header3 = Text({text: ' ', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
-const footer = Text({text: ' ', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
 
+type WatchedPlayer = { // Horizon Player object
+  name: string;    // Current local id
+  displayColor: string; // display color for player
+
+};
 
 type MyButtonProps = {
   label: Binding<String>,
   onClick: Callback,
 };
+
 
 function ModButton(props: MyButtonProps): UINode {
   return Pressable({
@@ -52,19 +62,32 @@ tempUINodeArray = [] as UINode[];
 
 
 
-const allPanelNodes: UINode[] = [header1, header2, header3, ...textNodes, footer];
+const allPanelNodes: UINode[] = [header1, header2, header3, ...textNodes];
+
+
+const players: WatchedPlayer[] = [{ name: 'No Players Found', displayColor: 'orange' }];
+const displayListBinding = new Binding<WatchedPlayer[]>(players);
 class ModTool extends UIComponent {
   panelName = 'ModTool';
   panelHeight = 1100;
   panelWidth = 500;
   
   initializeUI() {
+
     return View({
 
-      children: allPanelNodes,
-      style: {backgroundColor: 'black'},
+      children:[header1, header2, header3,DynamicList({data: displayListBinding, renderItem : (player: WatchedPlayer)=> {
+          return Text({text: player.name, style: {color: player.displayColor, fontSize: 24, textAlign: 'center'}});
+        }, style: {width: 500,}})],
+      style: {
+        flexDirection: 'column',
+        backgroundColor: 'black',
+        width: 500,
+        height: 1100,},
     });
   }
 }
-
 UIComponent.register(ModTool);
+
+// let activePlayerList = [{ name: 'Tech', displayColor: 'blue' }, { name: 'Gryphon', displayColor: 'red' }];
+// displayListBinding.set(activePlayerList)
