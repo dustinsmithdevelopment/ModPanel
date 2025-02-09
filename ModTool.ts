@@ -15,7 +15,7 @@ const worldOwner = 'TechGryphon';
 
 import 'horizon/core';
 
-import {UIComponent, View, Text, UINode, Binding, Callback, Pressable, DynamicList} from 'horizon/ui';
+import {UIComponent, View, Text, UINode, Binding, Callback, Pressable, DynamicList, PressableProps} from 'horizon/ui';
 import {Component, CodeBlockEvents, Player, World} from "horizon/core";
 
 type PlayerClickableValues = {
@@ -57,11 +57,13 @@ class ModTool extends UIComponent {
   private header2 = Text({text: 'Created by TechGryphon', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
   private header3 = Text({text: ' ', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
   private header4 = Text({text: ' ', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
-
-
   private NullDisplayValues: PlayerClickableValues[] = [{ name: 'No Players Found', displayColor: 'orange', index:-1, function: ()=>{return}}];
   private playerDisplayValues: PlayerClickableValues[] = [...this.NullDisplayValues];
   private displayListBinding = new Binding<PlayerClickableValues[]>(this.playerDisplayValues);
+  SetError(error: String){
+    // TODO set this up later to display errors
+    return
+  }
 
   UpdatePlayerListClickableValues() {
     this.playerDisplayValues = [];
@@ -80,6 +82,17 @@ class ModTool extends UIComponent {
     if (this.currentPage === 'PlayerList') {
       this.ShowPlayerList();
     }
+  }
+  private pressableList:UINode[] = [];
+  displayPressableListBinding = new Binding<UINode[]>(this.pressableList);
+  CreatePressableList(){
+    this.NullDisplayValues.forEach((player: PlayerClickableValues) => {
+      this.pressableList.push(Pressable({
+        children: Text({text: player.name, style: {color: player.displayColor, fontSize: 24, textAlign: 'center'}}),
+        onClick: ()=>{player.function()}
+        }));
+    })
+    this.displayPressableListBinding.set(this.pressableList);
   }
 
 
@@ -108,6 +121,9 @@ class ModTool extends UIComponent {
         }
     )
     this.ShowPlayerList()
+
+    // TODO get rid of this when finished testing
+    this.CreatePressableList()
   }
   PlayerEnterWorld(player: Player) {
     console.log(player.name.get() + " entered world")
@@ -136,16 +152,12 @@ class ModTool extends UIComponent {
       }
     }
   }
-// TODO FIGURE OUT UPDATING this.displayListBinding
   initializeUI() {
 
     return View({
 
-      children:[this.header1, this.header2, this.header3, this.header4,DynamicList({data: this.displayListBinding, renderItem : (player: PlayerClickableValues)=> {
-          return Pressable({
-            children: Text({text: player.name, style: {color: player.displayColor, fontSize: 24, textAlign: 'center'}}),
-            onClick: ()=>{player.function()}
-            });
+      children:[this.header1, this.header2, this.header3, this.header4,DynamicList({data: this.displayPressableListBinding, renderItem : (pressableItem: UINode)=> {
+          return pressableItem;
         }, style: {width: 500,}})],
       style: {
         flexDirection: 'column',
