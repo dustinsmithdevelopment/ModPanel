@@ -18,13 +18,6 @@ import 'horizon/core';
 import {UIComponent, View, Text, UINode, Binding, Callback, Pressable, DynamicList, PressableProps} from 'horizon/ui';
 import {Component, CodeBlockEvents, Player, World} from "horizon/core";
 
-type PlayerClickableValues = {
-  name: string;
-  displayColor: string;
-  index: number;
-  function: Function;
-};
-
 type MyButtonProps = {
   label: Binding<String>,
   onClick: Callback,
@@ -52,47 +45,38 @@ function CoreKey(variableName: string) {
 }
 class ModTool extends UIComponent {
   private currentPage = 'PlayerList'
-  private selectedPlayer: ActivePlayer = {index: -1, name: 'No Player Selected'};
+  private playerList: Player[] = [];
+  private selectedPlayer: Player | undefined;
   private header1 = Text({text: 'Mod Panel', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
   private header2 = Text({text: 'Created by TechGryphon', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
   private header3 = Text({text: ' ', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
   private header4 = Text({text: ' ', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
-  private NullDisplayValues: PlayerClickableValues[] = [{ name: 'No Players Found', displayColor: 'orange', index:-1, function: ()=>{return}}];
-  private playerDisplayValues: PlayerClickableValues[] = [...this.NullDisplayValues];
-  private displayListBinding = new Binding<PlayerClickableValues[]>(this.playerDisplayValues);
   SetError(error: String){
     // TODO set this up later to display errors
     return
   }
 
-  UpdatePlayerListClickableValues() {
-    this.playerDisplayValues = [];
+  ResolvePlayerColor(player:Player){
     const worldValues = this.world.persistentStorage
-    this.world.getPlayers().forEach((player: Player) => {
-      const tempName = player.name.get();
-      const playerModValue:number = worldValues.getPlayerVariable(player,CoreKey('Role'));
-      const playerColor = roles[String(playerModValue)].color;
-      const playerIndex = player.index.get();
-      this.playerDisplayValues.push({name: tempName, displayColor: playerColor, index: playerIndex, function: ()=>{
-        //TODO fix this
-        this.selectedPlayer = {index: playerIndex, name: tempName};
-        this.ShowPlayerMenu();
-        }});
-    });
-    if (this.currentPage === 'PlayerList') {
-      this.ShowPlayerList();
-    }
+    const playerModValue:number = worldValues.getPlayerVariable(player,CoreKey('Role'));
+    return roles[String(playerModValue)].color;
   }
+  private noPlayersText = [Text({text: 'No Players', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})]
+
   private pressableList:UINode[] = [];
   displayPressableListBinding = new Binding<UINode[]>(this.pressableList);
   CreatePressableList(){
-    this.NullDisplayValues.forEach((player: PlayerClickableValues) => {
+    this.pressableList = [];
+    this.playerList.forEach((player: Player) => {
       this.pressableList.push(Pressable({
-        children: Text({text: player.name, style: {color: player.displayColor, fontSize: 24, textAlign: 'center'}}),
-        onClick: ()=>{player.function()}
+        children: Text({text: player.name.get(), style: {color: this.ResolvePlayerColor(player), fontSize: 24, textAlign: 'center'}}),
+        onClick: ()=>{
+          this.selectedPlayer = player;
+          //TODO Call the options menu
+        }
         }));
     })
-    this.displayPressableListBinding.set(this.pressableList);
+    // this.displayPressableListBinding.set(this.pressableList);
   }
 
 
@@ -106,6 +90,7 @@ class ModTool extends UIComponent {
   panelHeight = 1100;
   panelWidth = 500;
   start() {
+    this.playerList.push(...this.world.getPlayers())
     this.connectCodeBlockEvent(
         this.entity,
         CodeBlockEvents.OnPlayerEnterWorld,
@@ -118,40 +103,51 @@ class ModTool extends UIComponent {
         CodeBlockEvents.OnPlayerExitWorld,
         (player:Player)=> {
           this.PlayerExitWorld(player)
+
         }
     )
     this.ShowPlayerList()
-
-    // TODO get rid of this when finished testing
-    this.CreatePressableList()
   }
   PlayerEnterWorld(player: Player) {
     console.log(player.name.get() + " entered world")
-    this.UpdatePlayerListClickableValues()
+    if (!this.playerList.find((p:Player)=>p.name.get() == player.name.get())){
+      this.playerList.push(player)
+    }
+    if (this.currentPage == 'PlayerList') {
+      this.ShowPlayerList()
+    }
+
   }
   PlayerExitWorld(player: Player) {
     console.log(player.name.get() + " exited world")
-    this.UpdatePlayerListClickableValues()
+    if (this.playerList.find((p:Player)=>p.name.get() == player.name.get())){
+      this.playerList.splice(this.playerList.indexOf(<Player>this.playerList.find((p: Player) => p.name.get() == player.name.get())),1)
+    }
+    if (this.currentPage == 'PlayerList') {
+      this.ShowPlayerList()
+    }
+
   }
   ShowPlayerList(){
-    if (this.playerDisplayValues.length === 0) {
-      this.displayListBinding.set(this.NullDisplayValues);
+    if (this.playerList.length === 0) {
+      this.displayPressableListBinding.set(this.noPlayersText);
     }else {
-      this.displayListBinding.set(this.playerDisplayValues);
+      this.CreatePressableList();
+      this.displayPressableListBinding.set(this.pressableList);
     }
   }
-  ShowPlayerMenu(){
-    // TODO make this show the actual menu
-    // validate that a player is selected
-    if (this.selectedPlayer.index !== -1) {
-      //validate that the user has not been replaced by another player
-      if (this.world.getPlayerFromIndex(this.selectedPlayer.index)?.name.get() != this.selectedPlayer.name) {
-        console.log("Player has been replaced")
-      }else {
-        console.log(this.selectedPlayer.name + " has been selected")
-      }
-    }
-  }
+  // ShowPlayerMenu(){
+  //   // TODO make this show the actual menu
+  //   // validate that a player is selected
+  //   if (this.selectedPlayer.index !== -1) {
+  //     //validate that the user has not been replaced by another player
+  //     if (this.world.getPlayerFromIndex(this.selectedPlayer.index)?.name.get() != this.selectedPlayer.name) {
+  //       console.log("Player has been replaced")
+  //     }else {
+  //       console.log(this.selectedPlayer.name + " has been selected")
+  //     }
+  //   }
+  // }
   initializeUI() {
 
     return View({
