@@ -4,6 +4,8 @@
 
 // Enter your name below
 const worldOwner = 'TechGryphon';
+const preferredFontSize = 24;
+const calculatedPanelHeight = preferredFontSize * 40;
 
 // Variables required
 // Group Name: ModPanel_Core
@@ -72,10 +74,10 @@ class ModTool extends UIComponent {
   private currentPage = 'PlayerList'
   private playerList: Player[] = new Array<Player>();
   private selectedPlayer: Player | undefined = undefined;
-  private header1 = Text({text: 'Mod Panel', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
-  private header2 = Text({text: 'Created by TechGryphon', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
-  private header3 = Text({text: ' ', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})
-  private errorDisplay = Text({text: ' ', style: {fontSize:24, color: 'red', textAlign: 'center'}})
+  private header1 = Text({text: 'Mod Panel', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
+  private header2 = Text({text: 'Created by TechGryphon', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
+  private header3 = Text({text: ' ', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
+  private errorDisplay = Text({text: ' ', style: {fontSize:preferredFontSize, color: 'red', textAlign: 'center'}})
   SetError(error: String){
     // TODO set this up later to display errors
     return
@@ -87,13 +89,13 @@ class ModTool extends UIComponent {
     const playerModValue:number = worldValues.getPlayerVariable(player,CoreKey('Role'));
     return roles[String(playerModValue)].color;
   }
-  private noPlayersText = [Text({text: 'No Players', style: {fontSize:24, color: 'yellow', textAlign: 'center'}})]
+  private noPlayersText = [Text({text: 'No Players', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})]
   displayPressableListBinding = new Binding<UINode[]>([]);
   CreatePlayerList(){
     let tempList: UINode[] = [];
     this.playerList.forEach((player: Player) => {
       tempList.push(Pressable({
-        children: Text({text: player.name.get(), style: {color: this.ResolvePlayerColor(player), fontSize: 24, textAlign: 'center'}}),
+        children: Text({text: player.name.get(), style: {color: this.ResolvePlayerColor(player), fontSize: preferredFontSize, textAlign: 'center'}}),
         onClick: ()=>{
           console.log(player.name.get() + " selected");
           this.selectedPlayer = player;
@@ -107,7 +109,7 @@ class ModTool extends UIComponent {
 
 
   panelName = 'ModTool';
-  panelHeight = 1100;
+  panelHeight = calculatedPanelHeight;
   panelWidth = 500;
   start() {
     this.playerList.push(...this.world.getPlayers());
