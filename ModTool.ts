@@ -48,9 +48,9 @@ type ActivePlayer = {
   index: number;
 }
 
-interface MenuItem {
+interface MainMenuItem {
   label: string;
-  onClick: () => void;
+  onClick: (modPlayer:Player, targetPlayer:Player) => void;
   color: string;
 }
 
@@ -60,46 +60,62 @@ function CoreKey(variableName: string) {
 
 
 class ModTool extends UIComponent {
-  private menuPages: MenuItem[] = [
-      {label: 'Back', onClick: ()=>{this.ShowPlayerList(); this.selectedPlayer = this.world.getServerPlayer()}, color: 'white'},
-      {label: 'Player Management', onClick: () => {return}, color: 'purple'},
-      {label: 'Teleport Options', onClick: () => {return}, color: 'green'},
-      {label: 'Voice Settings', onClick: () => {return}, color: 'yellow'},
-      {label: 'Kick Options', onClick: () => {return}, color: 'orange'},
-      {label: 'Player Movement', onClick: () => {return}, color: 'teal'},
-      {label: 'World Settings', onClick: () => {return}, color: 'blue'},
-      {label: 'Stats', onClick: () => {return}, color: 'limegreen'}
-  ]
   // private pages: String[] = ['PlayerList', 'MenuOptions', 'WorldSettings', 'PlayerManagement', 'PlayerRoles', 'PlayerPermissions', 'PlayerRoomsAccess', 'VoiceSettings', 'TeleportOptions', 'KickOptions', 'PlayerMovement', 'Stats'];
   private currentPage = 'PlayerList'
   private playerList: Player[] = new Array<Player>();
-  private selectedPlayer: Player | undefined = undefined;
   private header1 = Text({text: 'Mod Panel', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
   private header2 = Text({text: 'Created by TechGryphon', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
-  private header3 = Text({text: ' ', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
-  private errorDisplay = Text({text: ' ', style: {fontSize:preferredFontSize, color: 'red', textAlign: 'center'}})
-  SetError(error: String){
-    // TODO set this up later to display errors
-    return
-  }
+  private headerGap = Text({text: ' ', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
+  private targetPlayerNameText = new Binding<String>(' ');
+  private playerNameDisplay = Text({text: this.targetPlayerNameText, style: {fontSize:preferredFontSize, color: 'green', textAlign: 'center'}})
+  private errorText = new Binding<String>(' ');
+  private errorDisplay = Text({text: this.errorText, style: {fontSize:preferredFontSize, color: 'red', textAlign: 'center'}})
+  private noPlayersText = [Text({text: 'No Players', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})]
+  displayPressableListBinding = new Binding<UINode[]>([]);
 
+
+  private mainMenuPages: MainMenuItem[] = [
+      {label: 'Back', onClick: (modPlayer:Player, targetPlayer:Player)=>{
+        this.ShowPlayerList();
+        }, color: 'white'},
+      {label: 'Player Management', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        console.log(modPlayer.name.get() + " selected Player Management on " + targetPlayer.name.get());
+        }, color: 'purple'},
+      {label: 'Teleport Options', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        console.log(modPlayer.name.get() + " selected Teleport Options on " + targetPlayer.name.get());
+        }, color: 'green'},
+      {label: 'Voice Settings', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        console.log(modPlayer.name.get() + " selected Voice Settings on " + targetPlayer.name.get());
+        }, color: 'yellow'},
+      {label: 'Kick Options', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        console.log(modPlayer.name.get() + " selected Kick Options on " + targetPlayer.name.get());
+        }, color: 'orange'},
+      {label: 'Player Movement', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        console.log(modPlayer.name.get() + " selected Player Movement on " + targetPlayer.name.get());
+        }, color: 'teal'},
+      {label: 'World Settings', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        console.log(modPlayer.name.get() + " selected World Settings on " + targetPlayer.name.get());
+        }, color: 'blue'},
+      {label: 'Stats', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        console.log(modPlayer.name.get() + " selected Stats on " + targetPlayer.name.get());
+        }, color: 'limegreen'}
+  ]
 
   ResolvePlayerColor(player:Player){
     const worldValues = this.world.persistentStorage
     const playerModValue:number = worldValues.getPlayerVariable(player,CoreKey('Role'));
     return roles[String(playerModValue)].color;
   }
-  private noPlayersText = [Text({text: 'No Players', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})]
-  displayPressableListBinding = new Binding<UINode[]>([]);
+
   CreatePlayerList(){
     let tempList: UINode[] = [];
-    this.playerList.forEach((player: Player) => {
+    this.playerList.forEach((targetPlayer: Player) => {
       tempList.push(Pressable({
-        children: Text({text: player.name.get(), style: {color: this.ResolvePlayerColor(player), fontSize: preferredFontSize, textAlign: 'center'}}),
-        onClick: ()=>{
-          console.log(player.name.get() + " selected");
-          this.selectedPlayer = player;
-          this.ShowMenuOptions();
+        children: Text({text: targetPlayer.name.get(), style: {color: this.ResolvePlayerColor(targetPlayer), fontSize: preferredFontSize, textAlign: 'center'}}),
+        onClick: (modPlayer:Player)=>{
+          console.log(targetPlayer.name.get() + " selected by " + modPlayer.name.get());
+          this.targetPlayerNameText.set('Selected: ' + targetPlayer.name.get());
+          this.ShowMenuOptions(modPlayer, targetPlayer);
         }
         }));
     })
@@ -113,7 +129,6 @@ class ModTool extends UIComponent {
   panelWidth = 500;
   start() {
     this.playerList.push(...this.world.getPlayers());
-    this.selectedPlayer = this.world.getServerPlayer();
     this.connectCodeBlockEvent(
         this.entity,
         CodeBlockEvents.OnPlayerEnterWorld,
@@ -155,21 +170,24 @@ class ModTool extends UIComponent {
 
   }
   ShowPlayerList(){
+    this.currentPage = 'PlayerList';
+    this.targetPlayerNameText.set(' ');
+    this.errorText.set(' ');
     if (this.playerList.length === 0) {
       this.displayPressableListBinding.set(this.noPlayersText);
     }else {
       this.CreatePlayerList();
     }
   }
-  ShowMenuOptions(){
+  ShowMenuOptions(modPlayer:Player, targetPlayer:Player){
     this.currentPage = 'MenuOptions';
     let tempList: UINode[] = [];
-    this.menuPages.forEach((page: MenuItem) => {
+    this.mainMenuPages.forEach((page: MainMenuItem) => {
       // TODO check the player level here
       if (50 < managerLevel && page.label == 'Player Management') return;
       tempList.push(Pressable({
         children: Text({text: page.label, style: {color: page.color, fontSize: 24, textAlign: 'center'}}),
-        onClick: page.onClick
+        onClick: (player:Player) => {page.onClick(player, targetPlayer)}
       }));
     })
     this.displayPressableListBinding.set(tempList);
@@ -179,7 +197,7 @@ class ModTool extends UIComponent {
 
     return View({
 
-      children:[this.header1, this.header2, this.header3, this.errorDisplay,DynamicList({data: this.displayPressableListBinding, renderItem : (pressableItem: UINode)=> {
+      children:[this.header1, this.header2, this.headerGap, this.playerNameDisplay, this.errorDisplay,DynamicList({data: this.displayPressableListBinding, renderItem : (pressableItem: UINode)=> {
           return pressableItem;
         }, style: {width: 500,}})],
       style: {
