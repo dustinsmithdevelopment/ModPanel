@@ -285,10 +285,41 @@ class ModTool extends UIComponent {
   }
   ShowPlayerRoomsAccess(modPlayer:Player, targetPlayer:Player){
     this.currentPage = 'PlayerRoomsAccess';
-    let tempList: UINode[] = [Pressable({
+    let tempList: UINode[] = [
+        Pressable({
       children: Text({text: 'Back', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
       onClick: (player:Player) => {this.ShowPlayerManagementMenuOptions(player, targetPlayer)}
-    })];
+    }),
+      Pressable({
+        children: Text({text: 'Add all rooms', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+        onClick: (player:Player) => {
+          const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+          const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
+          if (modLevel > targetLevel) {
+            let newAccess = Number('9'.repeat(this.restrictedTeleportLocations.length));
+            this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), newAccess);
+            this.errorText.set(' ');
+            this.ShowPlayerRoomsAccess(player, targetPlayer);
+          }else {
+            this.errorText.set('You do not have permission to change this player\'s access.');
+          }
+        }
+      }),
+      Pressable({
+        children: Text({text: 'Remove all rooms', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+        onClick: (player:Player) => {
+          const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+          const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
+          if (modLevel > targetLevel) {
+            let newAccess = Number('1'.repeat(this.restrictedTeleportLocations.length));
+            this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), newAccess);
+            this.errorText.set(' ');
+            this.ShowPlayerRoomsAccess(player, targetPlayer);
+          }else {
+            this.errorText.set('You do not have permission to change this player\'s access.');
+          }
+        }
+      })];
     const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
     const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
     const roomsAccess = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Rooms')).toString();
