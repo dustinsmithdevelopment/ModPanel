@@ -289,7 +289,7 @@ class ModTool extends UIComponent {
             this.errorText.set(' ');
           }else {
             if (modLevel < role.roleLevelValue) this.errorText.set('You do not have permission assign this role.');
-            if (modLevel < targetLevel) this.errorText.set('You do not have permission to change this player\'s role.');
+            if (modLevel <= targetLevel) this.errorText.set('You do not have permission to change this player\'s role.');
           }
           this.ShowPlayerRolesMenuOptions(player, targetPlayer);
         }
@@ -378,7 +378,7 @@ class ModTool extends UIComponent {
           const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
           if (modLevel >= managerLevel && targetLevel < managerLevel) {
             let newPermissions = Number('9'.repeat(this.controlledMenuPages.length));
-            this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), newPermissions);
+            this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Permissions'), newPermissions);
             this.errorText.set(' ');
             this.ShowPlayerPermissions(player, targetPlayer);
           }else {
@@ -394,7 +394,7 @@ class ModTool extends UIComponent {
           const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
           if (modLevel >= managerLevel && targetLevel < managerLevel) {
             let newPermissions = Number('1'.repeat(this.controlledMenuPages.length));
-            this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), newPermissions);
+            this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Permissions'), newPermissions);
             this.errorText.set(' ');
             this.ShowPlayerPermissions(player, targetPlayer);
           }else {
