@@ -15,7 +15,7 @@ const roles: { [key: string]: RoleData } = {
 
 // Variables required
 // Group Name: ModPanel_Core
-// Variables as numbers: Role, Rooms
+// Variables as numbers: Role, Rooms, Permissions
 const managerLevel = 50;
 interface RoleData {
   name: string;
@@ -24,7 +24,7 @@ interface RoleData {
 
 interface RoleValue {
   name: string;
-  minValue: number;
+  roleLevelValue: number;
 }
 
 function getRoles(roles: { [key: string]: RoleData }): RoleValue[] {
@@ -36,13 +36,16 @@ function getRoles(roles: { [key: string]: RoleData }): RoleValue[] {
       // Map to the desired format
       .map(([key, role]) => ({
         name: role.name,
-        minValue: Number(key),
+        roleLevelValue: Number(key),
       }));
 }
 
 
 
 const roleValues = getRoles(roles);
+// @ts-ignore
+const managerRoleValue = roleValues.find(role => role.name === 'Manager').roleLevelValue;
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -65,7 +68,6 @@ function CoreKey(variableName: string) {
 
 
 class ModTool extends UIComponent {
-  // private pages: String[] = ['PlayerList', 'MenuOptions', 'WorldSettings', 'PlayerManagement', 'PlayerRoles', 'PlayerPermissions', 'PlayerRoomsAccess', 'VoiceSettings', 'TeleportOptions', 'KickOptions', 'PlayerMovement', 'Stats'];
   private teleportLocations = [
     'Respawn', 'VIP', 'Jail', 'Office', 'Stage', 'Bar', 'Room1', 'Room2'
   ];
@@ -82,7 +84,7 @@ class ModTool extends UIComponent {
   private noPlayersText = [Text({text: 'No Players', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})]
   displayPressableListBinding = new Binding<UINode[]>([]);
 
-
+  private controlledMenuPages:String[] = ['Teleport Options', 'Voice Settings', 'Kick Options', 'Player Movement', 'World Settings']
   private mainMenuPages: MenuItem[] = [
       {label: 'Back', onClick: (modPlayer:Player, targetPlayer:Player)=>{
         this.ShowPlayerList();
@@ -117,7 +119,7 @@ class ModTool extends UIComponent {
         this.ShowPlayerRolesMenuOptions(modPlayer, targetPlayer);
       }, color: 'purple'},
     {label: 'Player Permissions', onClick: (modPlayer:Player, targetPlayer:Player) => {
-        console.log(modPlayer.name.get() + " selected Player Permissions on " + targetPlayer.name.get());
+        this.ShowPlayerPermissions(modPlayer, targetPlayer);
       }, color: 'purple'},
     {label: 'Player Rooms Access', onClick: (modPlayer:Player, targetPlayer:Player) => {
         this.ShowPlayerRoomsAccess(modPlayer, targetPlayer);
@@ -193,10 +195,16 @@ class ModTool extends UIComponent {
     if (this.currentPage == 'PlayerList') {
       this.ShowPlayerList()
     }
-    const userRooms = this.world.persistentStorage.getPlayerVariable(player, CoreKey('Rooms'));
+    const persistentStorageValues = this.world.persistentStorage;
+    const userRooms = persistentStorageValues.getPlayerVariable(player, CoreKey('Rooms'));
     if (userRooms == 0) {
-      const defaultRoomValue = Number('1'.repeat(this.restrictedTeleportLocations.length))
+      const defaultRoomValue = Number('1'.repeat(this.restrictedTeleportLocations.length));
       this.world.persistentStorage.setPlayerVariable(player, CoreKey('Rooms'), defaultRoomValue);
+    }
+    const userPermissions = persistentStorageValues.getPlayerVariable(player, CoreKey('Permissions'));
+    if (userPermissions == 0) {
+      const defaultPermissionValue = Number('1'.repeat(this.controlledMenuPages.length));
+      this.world.persistentStorage.setPlayerVariable(player, CoreKey('Permissions'), defaultPermissionValue);
     }
 
 
@@ -236,9 +244,15 @@ class ModTool extends UIComponent {
   ShowMainMenuOptions(modPlayer:Player, targetPlayer:Player){
     this.currentPage = 'MenuOptions';
     let tempList: UINode[] = [];
+    const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+    const modPermissions = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString();
     this.mainMenuPages.forEach((page: MenuItem) => {
       // TODO check the player level here
-      if (50 < managerLevel && page.label == 'Player Management') return;
+      if (modLevel < managerLevel && page.label == 'Player Management') return;
+      if (this.controlledMenuPages.includes(page.label) && modLevel < managerLevel) {
+        const pageAccessValue = modPermissions[this.controlledMenuPages.indexOf(page.label)];
+        if (!(pageAccessValue == '9')) return;
+      }
       tempList.push(Pressable({
         children: Text({text: page.label, style: {color: page.color, fontSize: preferredFontSize, textAlign: 'center'}}),
         onClick: (player:Player) => {page.onClick(player, targetPlayer)}
@@ -265,15 +279,16 @@ class ModTool extends UIComponent {
       const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
       const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
       let tempColor = 'red'
-      if (targetLevel >= role.minValue) tempColor = 'green';
+      if (targetLevel >= role.roleLevelValue) tempColor = 'green';
       tempList.push(Pressable({
         children: Text({text: role.name, style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center', backgroundColor: tempColor}}),
         onClick: (player:Player) => {
-          if (modLevel > role.minValue && modLevel > targetLevel) {
-            this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Role'), role.minValue);
+          if (modLevel > role.roleLevelValue && modLevel > targetLevel) {
+            if (role.name == 'Manager') this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), Number('9'.repeat(this.restrictedTeleportLocations.length)));
+            this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Role'), role.roleLevelValue);
             this.errorText.set(' ');
           }else {
-            if (modLevel < role.minValue) this.errorText.set('You do not have permission assign this role.');
+            if (modLevel < role.roleLevelValue) this.errorText.set('You do not have permission assign this role.');
             if (modLevel < targetLevel) this.errorText.set('You do not have permission to change this player\'s role.');
           }
           this.ShowPlayerRolesMenuOptions(player, targetPlayer);
@@ -343,6 +358,73 @@ class ModTool extends UIComponent {
           }else {
             console.log('Mod level is less than target level')
             this.errorText.set('You do not have permission to change this player\'s access.');
+          }
+        }
+      }));
+    }
+    this.displayPressableListBinding.set(tempList);
+  }
+  ShowPlayerPermissions(modPlayer:Player, targetPlayer:Player){
+    this.currentPage = 'PlayerPermissions';
+    let tempList: UINode[] = [
+      Pressable({
+        children: Text({text: 'Back', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+        onClick: (player:Player) => {this.ShowPlayerManagementMenuOptions(player, targetPlayer)}
+      }),
+      Pressable({
+        children: Text({text: 'Add all permissions', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+        onClick: (player:Player) => {
+          const modLevel = this.world.persistentStorage.getPlayerVariable(player, CoreKey('Role'));
+          const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
+          if (modLevel >= managerLevel && targetLevel < managerLevel) {
+            let newPermissions = Number('9'.repeat(this.controlledMenuPages.length));
+            this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), newPermissions);
+            this.errorText.set(' ');
+            this.ShowPlayerPermissions(player, targetPlayer);
+          }else {
+            if (modLevel < managerLevel) this.errorText.set('Only Managers and owners can assign permissions.');
+            if (targetLevel >= managerLevel) this.errorText.set('Permissions cannot be modified on managers and owners.');
+          }
+        }
+      }),
+      Pressable({
+        children: Text({text: 'Remove all permissions', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+        onClick: (player:Player) => {
+          const modLevel = this.world.persistentStorage.getPlayerVariable(player, CoreKey('Role'));
+          const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
+          if (modLevel >= managerLevel && targetLevel < managerLevel) {
+            let newPermissions = Number('1'.repeat(this.controlledMenuPages.length));
+            this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), newPermissions);
+            this.errorText.set(' ');
+            this.ShowPlayerPermissions(player, targetPlayer);
+          }else {
+            if (modLevel < managerLevel) this.errorText.set('Only Managers and owners can assign permissions.');
+            if (targetLevel >= managerLevel) this.errorText.set('Permissions cannot be modified on managers and owners.');
+          }
+        }
+      })];
+    const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+    const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
+    const playerPermissions = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Permissions')).toString();
+    for (let i = 0; i < this.controlledMenuPages.length; i++) {
+
+      let tempColor = 'red'
+      const hasAccess = playerPermissions[i] == '9';
+      if (hasAccess) tempColor = 'green';
+      tempList.push(Pressable({
+        children: Text({text: this.controlledMenuPages[i], style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center', backgroundColor: tempColor}}),
+        onClick: (player:Player) => {
+          console.log(this.controlledMenuPages[i] + " was clicked");
+          if (modLevel >= managerLevel && targetLevel < managerLevel) {
+            let newPermissions = playerPermissions;
+            if (hasAccess) {newPermissions = newPermissions.slice(0, i) + '1' + newPermissions.slice(i + 1)}
+            else {newPermissions = newPermissions.slice(0, i) + '1' + newPermissions.slice(i + 1)}
+            this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Permissions'), Number(newPermissions));
+            this.errorText.set(' ');
+            this.ShowPlayerPermissions(player, targetPlayer);
+          }else {
+            if (modLevel < managerLevel) this.errorText.set('Only Managers and owners can assign permissions.');
+            if (targetLevel >= managerLevel) this.errorText.set('Permissions cannot be modified on managers and owners.');
           }
         }
       }));
