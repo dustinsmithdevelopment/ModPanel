@@ -133,13 +133,36 @@ class ModTool extends UIComponent {
   ]
   BuildTeleportPages(){
     this.teleportLocations.forEach((location: string) => {
+
       this.teleportOptionsMenuPages.push({label: location, onClick: (modPlayer:Player, targetPlayer:Player) => {
           console.log(modPlayer.name.get() + " selected Teleport:" + location + " on " + targetPlayer.name.get());
+          if (this.restrictedTeleportLocations.includes(location)) {
+            let hasAccess = false;
+            const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+            const modAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Rooms')).toString();
+            const modAccessValue = modAccess[this.restrictedTeleportLocations.indexOf(location)];
+            console.log(String(modAccessValue) + " is the value of " + location + " in the mod's access list");
+            if (modLevel >= managerLevel) hasAccess = true;
+            if (modAccessValue == '9') hasAccess = true;
+
+            if (hasAccess){
+              this.TeleportPlayer(targetPlayer, location);
+              this.errorText.set(' ');
+            }else {
+              this.errorText.set('You do not have permission to teleport to ' + location);}
+          }else {
+            // location is not restricted
+            this.TeleportPlayer(targetPlayer, location);
+            this.errorText.set(' ');
+          }
         }, color: 'green'});
     })
   }
 
-
+  TeleportPlayer(targetPlayer:Player, location:string){
+    //TODO this needs to be written
+    console.log(targetPlayer.name.get() + " teleported to " + location);
+  }
   ResolvePlayerColor(player:Player){
     const worldValues = this.world.persistentStorage
     const playerModValue:number = worldValues.getPlayerVariable(player,CoreKey('Role'));
