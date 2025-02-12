@@ -4,6 +4,7 @@
 
 // Enter your name below
 const worldOwner = 'TechGryphon';
+const VERSION = 'v1.0';
 const preferredFontSize = 24;
 const calculatedPanelHeight = preferredFontSize * 40;
 const roles: { [key: string]: RoleData } = {
@@ -17,6 +18,7 @@ const roles: { [key: string]: RoleData } = {
 // Group Name: ModPanel_Core
 // Variables as numbers: Role, Rooms, Permissions
 const managerLevel = 50;
+const minModeratorLevel = 10;
 interface RoleData {
   name: string;
   color: string;
@@ -54,7 +56,7 @@ const managerRoleValue = roleValues.find(role => role.name === 'Manager').roleLe
 import 'horizon/core';
 
 import {UIComponent, View, Text, UINode, Binding, Callback, Pressable, DynamicList, PressableProps} from 'horizon/ui';
-import {Component, CodeBlockEvents, Player, World} from "horizon/core";
+import {Component, CodeBlockEvents, Player, World, PropTypes, SpawnPointGizmo} from "horizon/core";
 
 interface MenuItem {
   label: string;
@@ -68,19 +70,50 @@ function CoreKey(variableName: string) {
 
 
 class ModTool extends UIComponent {
+  static propsDefinition = {
+    Respawn: { type: PropTypes.Entity},
+    VIP: { type: PropTypes.Entity},
+    Jail: { type: PropTypes.Entity},
+    Office: { type: PropTypes.Entity},
+    Stage: { type: PropTypes.Entity},
+    Bar: { type: PropTypes.Entity},
+    Room1: { type: PropTypes.Entity},
+    Room2: { type: PropTypes.Entity},
+  };
   private teleportLocations = [
     'Respawn', 'VIP', 'Jail', 'Office', 'Stage', 'Bar', 'Room1', 'Room2'
   ];
   private restrictedTeleportLocations = [...this.teleportLocations].filter(location => location !== 'Respawn' && location !== 'Jail');
   private currentPage = 'PlayerList'
   private playerList: Player[] = new Array<Player>();
-  private header1 = Text({text: 'Mod Panel', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
+  private header1 = Text({text: 'Mod Panel ' + VERSION, style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
   private header2 = Text({text: 'Created by TechGryphon', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
-  private headerGap = Text({text: ' ', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
+  private displayGap = Text({text: ' ', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
   private targetPlayerNameText = new Binding<String>(' ');
   private playerNameDisplay = Text({text: this.targetPlayerNameText, style: {fontSize:preferredFontSize, color: 'green', textAlign: 'center'}})
   private errorText = new Binding<String>(' ');
   private errorDisplay = Text({text: this.errorText, style: {fontSize:preferredFontSize, color: 'red', textAlign: 'center'}})
+  private resetButton = Pressable({
+    children: Text({text: 'Reset World', style: {color: 'red', fontSize: preferredFontSize, textAlign: 'center'}}),
+    onClick: (player:Player) => {
+      const modLevel = this.world.persistentStorage.getPlayerVariable(player, CoreKey('Role'));
+      if (modLevel >= minModeratorLevel) this.DisplayWorldReset(); else this.errorText.set('You do not have permission to reset the world.');
+    }
+  });
+  DisplayWorldReset(){
+    this.targetPlayerNameText.set(' ');
+    let tempList: UINode[] = [];
+    tempList.push(Pressable({
+      children: Text({text: 'Reset World', style: {color: 'red', fontSize: preferredFontSize, textAlign: 'center'}}),
+      onClick: (player:Player) => {console.log('Reset World')}
+    }));
+    tempList.push(this.displayGap);
+    tempList.push(Pressable({
+      children: Text({text: 'Cancel Reset', style: {color: 'green', fontSize: preferredFontSize, textAlign: 'center'}}),
+      onClick: (player:Player) => {this.ShowPlayerList()}
+    }));
+    this.displayPressableListBinding.set(tempList);
+  }
   private noPlayersText = [Text({text: 'No Players', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})]
   displayPressableListBinding = new Binding<UINode[]>([]);
 
@@ -162,6 +195,8 @@ class ModTool extends UIComponent {
   TeleportPlayer(targetPlayer:Player, location:string){
     //TODO this needs to be written
     console.log(targetPlayer.name.get() + " teleported to " + location);
+    // @ts-ignore: Object is recognized as type 'Never' and does not allow compilation but syntax is valid
+    this.props[location].as(SpawnPointGizmo).teleportPlayer(targetPlayer);
   }
   ResolvePlayerColor(player:Player){
     const worldValues = this.world.persistentStorage
@@ -281,6 +316,8 @@ class ModTool extends UIComponent {
         onClick: (player:Player) => {page.onClick(player, targetPlayer)}
       }));
     })
+    tempList.push(this.displayGap);
+    tempList.push(this.resetButton);
     this.displayPressableListBinding.set(tempList);
   }
   ShowPlayerManagementMenuOptions(modPlayer:Player, targetPlayer:Player){
@@ -458,7 +495,7 @@ class ModTool extends UIComponent {
 
     return View({
 
-      children:[this.header1, this.header2, this.headerGap, this.playerNameDisplay, this.errorDisplay,DynamicList({data: this.displayPressableListBinding, renderItem : (pressableItem: UINode)=> {
+      children:[this.header1, this.header2, this.displayGap, this.playerNameDisplay, this.errorDisplay,DynamicList({data: this.displayPressableListBinding, renderItem : (pressableItem: UINode)=> {
           return pressableItem;
         }, style: {width: 500,}})],
       style: {
