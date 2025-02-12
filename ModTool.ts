@@ -5,7 +5,7 @@
 // Enter your name below
 const worldOwner = 'TechGryphon';
 const VERSION = 'v1.0';
-const preferredFontSize = 24;
+const preferredFontSize = 36;
 const calculatedPanelHeight = preferredFontSize * 40;
 const roles: { [key: string]: RoleData } = {
   '100': { name: 'Owner', color: 'blue' },
@@ -105,7 +105,7 @@ class ModTool extends UIComponent {
     let tempList: UINode[] = [];
     tempList.push(Pressable({
       children: Text({text: 'Reset World', style: {color: 'red', fontSize: preferredFontSize, textAlign: 'center'}}),
-      onClick: (player:Player) => {console.log('Reset World')}
+      onClick: (player:Player) => {this.world.reset()}
     }));
     tempList.push(this.displayGap);
     tempList.push(Pressable({
