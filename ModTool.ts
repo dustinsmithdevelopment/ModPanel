@@ -53,7 +53,7 @@ const moderatorRoleValue:Number = roleValues.find(role => role.name === 'Moderat
 import 'horizon/core';
 
 import {UIComponent, View, Text, UINode, Binding, Callback, Pressable, DynamicList, PressableProps} from 'horizon/ui';
-import {Component, CodeBlockEvents, Player, World, PropTypes, SpawnPointGizmo} from "horizon/core";
+import {Component, CodeBlockEvents, Player, World, PropTypes, SpawnPointGizmo, VoipSettingValues} from "horizon/core";
 
 interface MenuItem {
   label: string;
@@ -126,7 +126,7 @@ class ModTool extends UIComponent {
         this.ShowTeleportOptionsMenuOptions(modPlayer, targetPlayer);
         }, color: 'green'},
       {label: 'Voice Settings', onClick: (modPlayer:Player, targetPlayer:Player) => {
-        console.log(modPlayer.name.get() + " selected Voice Settings on " + targetPlayer.name.get());
+        this.ShowVoiceOptionsMenuOptions(modPlayer, targetPlayer);
         }, color: 'yellow'},
       {label: 'Kick Options', onClick: (modPlayer:Player, targetPlayer:Player) => {
         console.log(modPlayer.name.get() + " selected Kick Options on " + targetPlayer.name.get());
@@ -154,7 +154,83 @@ class ModTool extends UIComponent {
     {label: 'Player Rooms Access', onClick: (modPlayer:Player, targetPlayer:Player) => {
         this.ShowPlayerRoomsAccess(modPlayer, targetPlayer);
       }, color: 'purple'}
-  ]
+  ];
+
+  private VoiceSettingsMenuPages: MenuItem[] = [
+    {label: 'Back', onClick: (modPlayer:Player, targetPlayer:Player)=>{
+        this.ShowMainMenuOptions(modPlayer, targetPlayer);
+      }, color: 'white'},
+    {label: 'Mute', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
+        const hasAccess = (playerVoiceAccess == '9');
+        if (hasAccess){
+          targetPlayer.setVoipSetting(VoipSettingValues.Mute);
+          this.errorText.set('Voice set to mute');
+        } else {
+          this.errorText.set('You do not have permission to set voice settings.');
+        }
+      }, color: 'yellow'},
+    {label: 'Whisper', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
+        const hasAccess = (playerVoiceAccess == '9');
+        if (hasAccess){
+          targetPlayer.setVoipSetting(VoipSettingValues.Whisper);
+          this.errorText.set('Voice set to whisper');
+        } else {
+          this.errorText.set('You do not have permission to set voice settings.');
+        }
+      }, color: 'yellow'},
+    {label: 'Nearby', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
+        const hasAccess = (playerVoiceAccess == '9');
+        if (hasAccess){
+          targetPlayer.setVoipSetting(VoipSettingValues.Nearby);
+          this.errorText.set('Voice set to nearby');
+        } else {
+          this.errorText.set('You do not have permission to set voice settings.');
+        }
+      }, color: 'yellow'},
+    {label: 'Default', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
+        const hasAccess = (playerVoiceAccess == '9');
+        if (hasAccess){
+          targetPlayer.setVoipSetting(VoipSettingValues.Default);
+          this.errorText.set('Voice set to default');
+        } else {
+          this.errorText.set('You do not have permission to set voice settings.');
+        }
+      }, color: 'yellow'},
+    {label: 'Environment', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
+        const hasAccess = (playerVoiceAccess == '9');
+        if (hasAccess){
+          targetPlayer.setVoipSetting(VoipSettingValues.Environment);
+          this.errorText.set('Voice set to environment');
+        } else {
+          this.errorText.set('You do not have permission to set voice settings.');
+        }
+      }, color: 'yellow'},
+    {label: 'Extended', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
+        const hasAccess = (playerVoiceAccess == '9');
+        if (hasAccess){
+          targetPlayer.setVoipSetting(VoipSettingValues.Extended);
+          this.errorText.set('Voice set to extended');
+        } else {
+          this.errorText.set('You do not have permission to set voice settings.');
+        }
+      }, color: 'yellow'},
+    {label: 'Global', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
+        const hasAccess = (playerVoiceAccess == '9');
+        if (hasAccess){
+          targetPlayer.setVoipSetting(VoipSettingValues.Global);
+          this.errorText.set('Voice set to global');
+        } else {
+          this.errorText.set('You do not have permission to set voice settings.');
+        }
+      }, color: 'yellow'}
+  ];
 
   private teleportOptionsMenuPages: MenuItem[] = [
     {label: 'Back', onClick: (modPlayer:Player, targetPlayer:Player)=>{
@@ -298,6 +374,7 @@ class ModTool extends UIComponent {
 
   ShowMainMenuOptions(modPlayer:Player, targetPlayer:Player){
     this.currentPage = 'MenuOptions';
+    this.errorText.set(' ');
     let tempList: UINode[] = [];
     const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
     const modPermissions = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString();
@@ -501,6 +578,10 @@ class ModTool extends UIComponent {
       }));
     }
     this.displayPressableListBinding.set(tempList);
+  }
+  ShowVoiceOptionsMenuOptions(modPlayer:Player, targetPlayer:Player){
+    this.currentPage = 'Voice Settings';
+    this.BuildMenu(modPlayer, targetPlayer, this.VoiceSettingsMenuPages);
   }
   initializeUI() {
 
