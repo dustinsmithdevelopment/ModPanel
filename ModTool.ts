@@ -411,7 +411,7 @@ class ModTool extends UIComponent {
             console.log('Mod level is greater than target level')
             let newAccess = roomsAccess;
             if (hasAccess) {newAccess = newAccess.slice(0, i) + '1' + newAccess.slice(i + 1)}
-            else {newAccess = newAccess.slice(0, i) + '1' + newAccess.slice(i + 1)}
+            else {newAccess = newAccess.slice(0, i) + '9' + newAccess.slice(i + 1)}
             this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), Number(newAccess));
             this.errorText.set(' ');
             this.ShowPlayerRoomsAccess(player, targetPlayer);
@@ -478,7 +478,7 @@ class ModTool extends UIComponent {
           if (modLevel >= managerLevel && targetLevel < managerLevel) {
             let newPermissions = playerPermissions;
             if (hasAccess) {newPermissions = newPermissions.slice(0, i) + '1' + newPermissions.slice(i + 1)}
-            else {newPermissions = newPermissions.slice(0, i) + '1' + newPermissions.slice(i + 1)}
+            else {newPermissions = newPermissions.slice(0, i) + '9' + newPermissions.slice(i + 1)}
             this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Permissions'), Number(newPermissions));
             this.errorText.set(' ');
             this.ShowPlayerPermissions(player, targetPlayer);
