@@ -2,26 +2,28 @@
 
 // Attach this to a CustomUI Gizmo
 
+// Variables required
+// Group Name: ModPanel_Core
+// Variables as numbers: Role, Rooms, Permissions, BanStatus, BanTime
+
 // Enter your name below
-const worldOwner = 'TechGryphon';
+const WORLD_OWNER = 'TechGryphon';
 const VERSION = 'v1.0';
-const preferredFontSize = 36;
-const calculatedPanelHeight = preferredFontSize * 40;
-const roles: { [key: string]: RoleData } = {
+const PREFERRED_FONT_SIZE = 36;
+const DEFAULT_PLAYER_SPEED = 4.50;
+const ROLES: { [key: string]: RoleData } = {
   '100': { name: 'Owner', color: 'blue' },
   '50': { name: 'Manager', color: 'green' },
   '10': { name: 'Moderator', color: 'green' },
   '0': { name: 'Player', color: 'white' },
 };
-const teleportLocations = [
+const TELEPORT_LOCATIONS = [
   'Respawn', 'VIP', 'Jail', 'Office', 'Stage', 'Bar', 'Room1', 'Room2'
 ];
-const restrictedTeleportLocations = [...teleportLocations].filter(location => location !== 'Respawn' && location !== 'Jail');
+const RESTRICTED_TELEPORT_LOCATIONS = [...TELEPORT_LOCATIONS].filter(location => location !== 'Respawn' && location !== 'Jail');
 
-// Variables required
-// Group Name: ModPanel_Core
-// Variables as numbers: Role, Rooms, Permissions, BanStatus, BanTime
 
+const calculatedPanelHeight = PREFERRED_FONT_SIZE * 40;
 interface RoleData {
   name: string;
   color: string;
@@ -43,7 +45,7 @@ function getRoles(roles: { [key: string]: RoleData }): RoleValue[] {
 
 
 
-const roleValues = getRoles(roles);
+const roleValues = getRoles(ROLES);
 // @ts-ignore: Value is defined in above function but compiler is unable to see it when type checking
 const managerRoleValue:Number = roleValues.find(role => role.name === 'Manager').roleLevelValue;
 // @ts-ignore: Value is defined in above function but compiler is unable to see it when type checking
@@ -64,7 +66,7 @@ import {
   PropTypes,
   SpawnPointGizmo,
   VoipSettingValues,
-  Color
+  Color, Vec3
 } from "horizon/core";
 
 interface MenuItem {
@@ -92,15 +94,15 @@ class ModTool extends UIComponent {
 
   private currentPage = 'PlayerList'
   private playerList: Player[] = new Array<Player>();
-  private header1 = Text({text: 'Mod Panel ' + VERSION, style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
-  private header2 = Text({text: 'Created by TechGryphon', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
-  private displayGap = Text({text: ' ', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
+  private header1 = Text({text: 'Mod Panel ' + VERSION, style: {fontSize:PREFERRED_FONT_SIZE, color: 'yellow', textAlign: 'center'}})
+  private header2 = Text({text: 'Created by TechGryphon', style: {fontSize:PREFERRED_FONT_SIZE, color: 'yellow', textAlign: 'center'}})
+  private displayGap = Text({text: ' ', style: {fontSize:PREFERRED_FONT_SIZE, color: 'yellow', textAlign: 'center'}})
   private targetPlayerNameText = new Binding<String>(' ');
-  private playerNameDisplay = Text({text: this.targetPlayerNameText, style: {fontSize:preferredFontSize, color: 'green', textAlign: 'center'}})
+  private playerNameDisplay = Text({text: this.targetPlayerNameText, style: {fontSize:PREFERRED_FONT_SIZE, color: 'green', textAlign: 'center'}})
   private errorText = new Binding<String>(' ');
-  private errorDisplay = Text({text: this.errorText, style: {fontSize:preferredFontSize, color: 'red', textAlign: 'center'}})
+  private errorDisplay = Text({text: this.errorText, style: {fontSize:PREFERRED_FONT_SIZE, color: 'red', textAlign: 'center'}})
   private resetButton = Pressable({
-    children: Text({text: 'Reset World', style: {color: 'red', fontSize: preferredFontSize, textAlign: 'center'}}),
+    children: Text({text: 'Reset World', style: {color: 'red', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
     onClick: (player:Player) => {
       const modLevel = this.world.persistentStorage.getPlayerVariable(player, CoreKey('Role'));
       if (modLevel >= moderatorRoleValue) this.DisplayWorldReset(); else this.errorText.set('You do not have permission to reset the world.');
@@ -110,17 +112,17 @@ class ModTool extends UIComponent {
     this.targetPlayerNameText.set(' ');
     let tempList: UINode[] = [];
     tempList.push(Pressable({
-      children: Text({text: 'Reset World', style: {color: 'red', fontSize: preferredFontSize, textAlign: 'center'}}),
+      children: Text({text: 'Reset World', style: {color: 'red', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
       onClick: (player:Player) => {this.world.reset()}
     }));
     tempList.push(this.displayGap);
     tempList.push(Pressable({
-      children: Text({text: 'Cancel Reset', style: {color: 'green', fontSize: preferredFontSize, textAlign: 'center'}}),
+      children: Text({text: 'Cancel Reset', style: {color: 'green', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
       onClick: (player:Player) => {this.ShowPlayerList()}
     }));
     this.displayPressableListBinding.set(tempList);
   }
-  private noPlayersText = [Text({text: 'No Players', style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})]
+  private noPlayersText = [Text({text: 'No Players', style: {fontSize:PREFERRED_FONT_SIZE, color: 'yellow', textAlign: 'center'}})]
   displayPressableListBinding = new Binding<UINode[]>([]);
 
   private controlledMenuPages:String[] = ['Teleport Options', 'Voice Settings', 'Kick Options', 'Player Movement', 'World Settings']
@@ -141,7 +143,7 @@ class ModTool extends UIComponent {
         this.ShowKickPlayerMenuOptions(modPlayer, targetPlayer);
         }, color: 'orange'},
       {label: 'Player Movement', onClick: (modPlayer:Player, targetPlayer:Player) => {
-        console.log(modPlayer.name.get() + " selected Player Movement on " + targetPlayer.name.get());
+        this.ShowPlayerMovementMenuOptions(modPlayer, targetPlayer);
         }, color: 'teal'},
       {label: 'World Settings', onClick: (modPlayer:Player, targetPlayer:Player) => {
         console.log(modPlayer.name.get() + " selected World Settings on " + targetPlayer.name.get());
@@ -252,15 +254,15 @@ class ModTool extends UIComponent {
       }, color: 'white'},
   ]
   BuildTeleportPages(){
-    teleportLocations.forEach((location: string) => {
+    TELEPORT_LOCATIONS.forEach((location: string) => {
 
       this.teleportOptionsMenuPages.push({label: location, onClick: (modPlayer:Player, targetPlayer:Player) => {
           console.log(modPlayer.name.get() + " selected Teleport:" + location + " on " + targetPlayer.name.get());
-          if (restrictedTeleportLocations.includes(location)) {
+          if (RESTRICTED_TELEPORT_LOCATIONS.includes(location)) {
             let hasAccess = false;
             const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
             const modAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Rooms')).toString();
-            const modAccessValue = modAccess[restrictedTeleportLocations.indexOf(location)];
+            const modAccessValue = modAccess[RESTRICTED_TELEPORT_LOCATIONS.indexOf(location)];
             console.log(String(modAccessValue) + " is the value of " + location + " in the mod's access list");
             if (modLevel >= managerRoleValue) hasAccess = true;
             if (modAccessValue == '9') hasAccess = true;
@@ -321,9 +323,105 @@ class ModTool extends UIComponent {
       }, color: 'orange'},
 
   ];
+  private playerMovementMenuPages: MenuItem[] = [
+    {label: 'Back', onClick: (modPlayer:Player, targetPlayer:Player)=>{
+        this.ShowMainMenuOptions(modPlayer, targetPlayer);
+      }, color: 'white'},
+    {label: 'Teleport to Player', onClick: (modPlayer:Player, targetPlayer:Player)=>{
+        const modPlayerValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const modTeleportAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Player Movement')] == '9';
+        if((modPlayerValue >= moderatorRoleValue && modTeleportAccess) || modPlayerValue >= managerRoleValue){
+          // Player is manager or a mod with access
+          const targetPlayerLocation = targetPlayer.position.get();
+          modPlayer.position.set(targetPlayerLocation);
+        }else {
+          if (modPlayerValue < moderatorRoleValue) {
+            this.errorText.set('Only moderators can move players.');
+          }else if (!modTeleportAccess) this.errorText.set('You do not have permission to move players.');
+        }
+      }, color: 'teal'},
+    {label: 'Teleport Player to You', onClick: (modPlayer:Player, targetPlayer:Player)=>{
+        const modPlayerValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const modTeleportAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Player Movement')] == '9';
+        if((modPlayerValue >= moderatorRoleValue && modTeleportAccess) || modPlayerValue >= managerRoleValue){
+          // Player is manager or a mod with access
+          this.GrabPlayer(modPlayer,targetPlayer);
+        }else {
+          if (modPlayerValue < moderatorRoleValue) {
+            this.errorText.set('Only moderators can move players.');
+          }else if (!modTeleportAccess) this.errorText.set('You do not have permission to move players.');
+        }
+      }, color: 'teal'},
+    {label: 'Freeze Player', onClick: (modPlayer:Player, targetPlayer:Player)=>{
+        const modPlayerValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const modTeleportAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Player Movement')] == '9';
+        if((modPlayerValue >= moderatorRoleValue && modTeleportAccess) || modPlayerValue >= managerRoleValue){
+          // Player is manager or a mod with access
+          targetPlayer.locomotionSpeed.set(0)
 
+        }else {
+          if (modPlayerValue < moderatorRoleValue) {
+            this.errorText.set('Only moderators can move players.');
+          }else if (!modTeleportAccess) this.errorText.set('You do not have permission to move players.');
+        }
+      }, color: 'teal'},
+    {label: 'Unfreeze Player', onClick: (modPlayer:Player, targetPlayer:Player)=>{
+        const modPlayerValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const modTeleportAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Player Movement')] == '9';
+        if((modPlayerValue >= moderatorRoleValue && modTeleportAccess) || modPlayerValue >= managerRoleValue){
+          // Player is manager or a mod with access
+          targetPlayer.locomotionSpeed.set(DEFAULT_PLAYER_SPEED)
 
+        }else {
+          if (modPlayerValue < moderatorRoleValue) {
+            this.errorText.set('Only moderators can move players.');
+          }else if (!modTeleportAccess) this.errorText.set('You do not have permission to move players.');
+        }
+      }, color: 'teal'},
+    {label: 'Teleport Player to You / Freeze', onClick: (modPlayer:Player, targetPlayer:Player)=>{
+        const modPlayerValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const modTeleportAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Player Movement')] == '9';
+        if((modPlayerValue >= moderatorRoleValue && modTeleportAccess) || modPlayerValue >= managerRoleValue){
+          // Player is manager or a mod with access
+          targetPlayer.locomotionSpeed.set(0);
+          this.GrabPlayer(modPlayer,targetPlayer);
 
+        }else {
+          if (modPlayerValue < moderatorRoleValue) {
+            this.errorText.set('Only moderators can move players.');
+          }else if (!modTeleportAccess) this.errorText.set('You do not have permission to move players.');
+        }
+      }, color: 'teal'},
+    {label: 'Teleport Player Back / Unfreeze', onClick: (modPlayer:Player, targetPlayer:Player)=>{
+        const modPlayerValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const modTeleportAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Player Movement')] == '9';
+        if((modPlayerValue >= moderatorRoleValue && modTeleportAccess) || modPlayerValue >= managerRoleValue){
+          // Player is manager or a mod with access
+          this.ReturnPlayer(targetPlayer);
+          targetPlayer.locomotionSpeed.set(DEFAULT_PLAYER_SPEED)
+        }else {
+          if (modPlayerValue < moderatorRoleValue) {
+            this.errorText.set('Only moderators can move players.');
+          }else if (!modTeleportAccess) this.errorText.set('You do not have permission to move players.');
+        }
+      }, color: 'teal'},
+
+  ];
+
+  private grabbedPlayers = new Map<Player, Vec3>();
+  GrabPlayer(modPlayer:Player,targetPlayer:Player){
+    const playerPosition = targetPlayer.position.get();
+    this.grabbedPlayers.set(targetPlayer, playerPosition);
+    targetPlayer.position.set(modPlayer.position.get());
+
+  }
+  ReturnPlayer(player:Player){
+    if (this.grabbedPlayers.has(player)){
+      const lastPlayerPosition = this.grabbedPlayers.get(player);
+      player.position.set(<Vec3>lastPlayerPosition);
+      this.grabbedPlayers.delete(player);
+    }
+  }
   BanPlayer(modPlayer:Player, targetPlayer:Player, days:number){
     const modValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
     const targetValue = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
@@ -401,14 +499,14 @@ class ModTool extends UIComponent {
   ResolvePlayerColor(player:Player){
     const worldValues = this.world.persistentStorage
     const playerModValue:number = worldValues.getPlayerVariable(player,CoreKey('Role'));
-    return roles[String(playerModValue)].color;
+    return ROLES[String(playerModValue)].color;
   }
 
   CreatePlayerList(){
     let tempList: UINode[] = [];
     this.playerList.forEach((targetPlayer: Player) => {
       tempList.push(Pressable({
-        children: Text({text: targetPlayer.name.get(), style: {color: this.ResolvePlayerColor(targetPlayer), fontSize: preferredFontSize, textAlign: 'center'}}),
+        children: Text({text: targetPlayer.name.get(), style: {color: this.ResolvePlayerColor(targetPlayer), fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
         onClick: (modPlayer:Player)=>{
           this.targetPlayerNameText.set('Selected: ' + targetPlayer.name.get());
           this.ShowMainMenuOptions(modPlayer, targetPlayer);
@@ -422,12 +520,12 @@ class ModTool extends UIComponent {
 
   panelName = 'ModTool';
   panelHeight = calculatedPanelHeight;
-  panelWidth = 500;
+  panelWidth = 600;
   InitializePersistentVariables(player:Player){
     const persistentStorageValues = this.world.persistentStorage;
     const userRooms = persistentStorageValues.getPlayerVariable(player, CoreKey('Rooms'));
     if (userRooms == 0) {
-      const defaultRoomValue = Number('1'.repeat(restrictedTeleportLocations.length));
+      const defaultRoomValue = Number('1'.repeat(RESTRICTED_TELEPORT_LOCATIONS.length));
       this.world.persistentStorage.setPlayerVariable(player, CoreKey('Rooms'), defaultRoomValue);
     }
     const userPermissions = persistentStorageValues.getPlayerVariable(player, CoreKey('Permissions'));
@@ -487,6 +585,7 @@ class ModTool extends UIComponent {
   }
   PlayerExitWorld(player: Player) {
     this.RemoveFromPlayerList(player)
+    if (this.grabbedPlayers.has(player)){this.grabbedPlayers.delete(player)}
   }
   ShowPlayerList(){
     this.currentPage = 'PlayerList';
@@ -502,7 +601,7 @@ class ModTool extends UIComponent {
     let tempList: UINode[] = [];
     menuOptions.forEach((page: MenuItem) => {
       tempList.push(Pressable({
-        children: Text({text: page.label, style: {color: page.color, fontSize: preferredFontSize, textAlign: 'center'}}),
+        children: Text({text: page.label, style: {color: page.color, fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
         onClick: (player:Player) => {page.onClick(player, targetPlayer)}
       }));
     })
@@ -510,8 +609,6 @@ class ModTool extends UIComponent {
   }
 
   ShowMainMenuOptions(modPlayer:Player, targetPlayer:Player){
-    const loadTime = new Date().getTime()
-    console.log(loadTime)
     this.currentPage = 'MenuOptions';
     this.errorText.set(' ');
     let tempList: UINode[] = [];
@@ -525,7 +622,7 @@ class ModTool extends UIComponent {
         if (!(pageAccessValue == '9')) return;
       }
       tempList.push(Pressable({
-        children: Text({text: page.label, style: {color: page.color, fontSize: preferredFontSize, textAlign: 'center'}}),
+        children: Text({text: page.label, style: {color: page.color, fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
         onClick: (player:Player) => {page.onClick(player, targetPlayer)}
       }));
     })
@@ -545,7 +642,7 @@ class ModTool extends UIComponent {
   ShowPlayerRolesMenuOptions(modPlayer:Player, targetPlayer:Player){
     this.currentPage = 'PlayerRoles';
     let tempList: UINode[] = [Pressable({
-      children: Text({text: 'Back', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+      children: Text({text: 'Back', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
       onClick: (player:Player) => {this.ShowPlayerManagementMenuOptions(player, targetPlayer)}
     })];
     roleValues.forEach((role: RoleValue) => {
@@ -554,21 +651,21 @@ class ModTool extends UIComponent {
       let tempColor = 'red'
       if (targetLevel >= role.roleLevelValue) tempColor = 'green';
       if (role.name == 'Owner'){
-        tempList.push(Text({text: role.name, style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center', backgroundColor: tempColor}}))
+        tempList.push(Text({text: role.name, style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center', backgroundColor: tempColor}}))
       } else{
         tempList.push(Pressable({
           children: Text({
             text: role.name,
-            style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center', backgroundColor: tempColor}
+            style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center', backgroundColor: tempColor}
           }),
           onClick: (player: Player) => {
             if (modLevel > role.roleLevelValue && modLevel > targetLevel) {
               if (role.name == 'Manager') {
-                this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), Number('9'.repeat(restrictedTeleportLocations.length)));
+                this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), Number('9'.repeat(RESTRICTED_TELEPORT_LOCATIONS.length)));
                 this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Permissions'), Number('9'.repeat(this.controlledMenuPages.length)));
               }
               if (role.name == 'Player') {
-                this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), Number('1'.repeat(restrictedTeleportLocations.length)));
+                this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), Number('1'.repeat(RESTRICTED_TELEPORT_LOCATIONS.length)));
                 this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Permissions'), Number('1'.repeat(this.controlledMenuPages.length)));
               }
               this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Role'), role.roleLevelValue);
@@ -589,16 +686,16 @@ class ModTool extends UIComponent {
     this.currentPage = 'PlayerRoomsAccess';
     let tempList: UINode[] = [
         Pressable({
-      children: Text({text: 'Back', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+      children: Text({text: 'Back', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
       onClick: (player:Player) => {this.ShowPlayerManagementMenuOptions(player, targetPlayer)}
     }),
       Pressable({
-        children: Text({text: 'Add all rooms', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+        children: Text({text: 'Add all rooms', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
         onClick: (player:Player) => {
           const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
           const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
           if (modLevel > targetLevel) {
-            let newAccess = Number('9'.repeat(restrictedTeleportLocations.length));
+            let newAccess = Number('9'.repeat(RESTRICTED_TELEPORT_LOCATIONS.length));
             this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), newAccess);
             this.errorText.set(' ');
             this.ShowPlayerRoomsAccess(player, targetPlayer);
@@ -608,12 +705,12 @@ class ModTool extends UIComponent {
         }
       }),
       Pressable({
-        children: Text({text: 'Remove all rooms', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+        children: Text({text: 'Remove all rooms', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
         onClick: (player:Player) => {
           const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
           const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
           if (modLevel > targetLevel) {
-            let newAccess = Number('1'.repeat(restrictedTeleportLocations.length));
+            let newAccess = Number('1'.repeat(RESTRICTED_TELEPORT_LOCATIONS.length));
             this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), newAccess);
             this.errorText.set(' ');
             this.ShowPlayerRoomsAccess(player, targetPlayer);
@@ -625,15 +722,15 @@ class ModTool extends UIComponent {
     const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
     const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
     const roomsAccess = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Rooms')).toString();
-    for (let i = 0; i < restrictedTeleportLocations.length; i++) {
+    for (let i = 0; i < RESTRICTED_TELEPORT_LOCATIONS.length; i++) {
 
       let tempColor = 'red'
       const hasAccess = roomsAccess[i] == '9';
       if (hasAccess) tempColor = 'green';
       tempList.push(Pressable({
-        children: Text({text: restrictedTeleportLocations[i], style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center', backgroundColor: tempColor}}),
+        children: Text({text: RESTRICTED_TELEPORT_LOCATIONS[i], style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center', backgroundColor: tempColor}}),
         onClick: (player:Player) => {
-          console.log(restrictedTeleportLocations[i] + " was clicked");
+          console.log(RESTRICTED_TELEPORT_LOCATIONS[i] + " was clicked");
           if (modLevel > targetLevel) {
             console.log('Mod level is greater than target level')
             let newAccess = roomsAccess;
@@ -655,11 +752,11 @@ class ModTool extends UIComponent {
     this.currentPage = 'PlayerPermissions';
     let tempList: UINode[] = [
       Pressable({
-        children: Text({text: 'Back', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+        children: Text({text: 'Back', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
         onClick: (player:Player) => {this.ShowPlayerManagementMenuOptions(player, targetPlayer)}
       }),
       Pressable({
-        children: Text({text: 'Add all permissions', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+        children: Text({text: 'Add all permissions', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
         onClick: (player:Player) => {
           const modLevel = this.world.persistentStorage.getPlayerVariable(player, CoreKey('Role'));
           const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
@@ -675,7 +772,7 @@ class ModTool extends UIComponent {
         }
       }),
       Pressable({
-        children: Text({text: 'Remove all permissions', style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center'}}),
+        children: Text({text: 'Remove all permissions', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
         onClick: (player:Player) => {
           const modLevel = this.world.persistentStorage.getPlayerVariable(player, CoreKey('Role'));
           const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
@@ -699,7 +796,7 @@ class ModTool extends UIComponent {
       const hasAccess = playerPermissions[i] == '9';
       if (hasAccess) tempColor = 'green';
       tempList.push(Pressable({
-        children: Text({text: this.controlledMenuPages[i], style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center', backgroundColor: tempColor}}),
+        children: Text({text: this.controlledMenuPages[i], style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center', backgroundColor: tempColor}}),
         onClick: (player:Player) => {
           console.log(this.controlledMenuPages[i] + " was clicked");
           if (modLevel >= managerRoleValue && targetLevel < managerRoleValue) {
@@ -725,6 +822,10 @@ class ModTool extends UIComponent {
   ShowKickPlayerMenuOptions(modPlayer:Player, targetPlayer:Player){
     this.currentPage = 'Kick Options';
     this.BuildMenu(modPlayer, targetPlayer, this.kickOptionsMenuPages);
+  }
+  ShowPlayerMovementMenuOptions(modPlayer:Player, targetPlayer:Player){
+    this.currentPage = 'Player Movement';
+    this.BuildMenu(modPlayer, targetPlayer, this.playerMovementMenuPages);
   }
   initializeUI() {
 
