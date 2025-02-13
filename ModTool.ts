@@ -285,7 +285,7 @@ class ModTool extends UIComponent {
         this.ShowMainMenuOptions(modPlayer, targetPlayer);
       }, color: 'white'},
     {label: 'Warn Player', onClick: (modPlayer:Player, targetPlayer:Player) => {
-        this.world.ui.showPopupForPlayer(targetPlayer, 'This is a warning, stop what you are doing.',5,{fontColor: new Color(255,0,0), backgroundColor: new Color(0,0,0), showTimer:false});
+        this.world.ui.showPopupForPlayer(targetPlayer, 'This is a warning, stop what you are doing.',5,{fontColor: new Color(255,0,0), backgroundColor: new Color(0,0,0), showTimer:false, fontSize: 2});
         this.errorText.set('Player warned');
       }, color: 'orange'},
     {label: 'Kick', onClick: (modPlayer:Player, targetPlayer:Player) => {
@@ -431,15 +431,29 @@ class ModTool extends UIComponent {
         this.world.ui.showPopupForPlayer(targetPlayer, 'You have been kicked by a moderator', 5, {
           fontColor: new Color(255, 0, 0),
           backgroundColor: new Color(0, 0, 0),
-          showTimer: false
+          showTimer: false,
+            fontSize: 2
         });
         this.errorText.set('Player kicked');
       } else if (days > 0 && days <= 14) {
         this.TeleportPlayer(targetPlayer, 'Jail');
+        if (days == 1){this.world.ui.showPopupForPlayer(targetPlayer, 'You have been banned for ' + days + ' day by a moderator', 5, {
+                fontColor: new Color(255, 0, 0),
+                backgroundColor: new Color(0, 0, 0),
+                showTimer: false,
+            fontSize: 2
+            });
+        } else {this.world.ui.showPopupForPlayer(targetPlayer, 'You have been banned for ' + days + ' days by a moderator', 5, {
+            fontColor: new Color(255, 0, 0),
+            backgroundColor: new Color(0, 0, 0),
+            showTimer: false,
+            fontSize: 2
+        });}
         this.world.ui.showPopupForPlayer(targetPlayer, 'You have been banned for ' + days + ' days by a moderator', 5, {
           fontColor: new Color(255, 0, 0),
           backgroundColor: new Color(0, 0, 0),
-          showTimer: false
+          showTimer: false,
+            fontSize: 2
         });
         this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('BanStatus'), 5);
         this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('BanTime'), this.GetCurrentHour() + (days * 24));
@@ -450,7 +464,8 @@ class ModTool extends UIComponent {
           this.world.ui.showPopupForPlayer(targetPlayer, 'You have been banned for ' + days + ' days by a manager', 5, {
             fontColor: new Color(255, 0, 0),
             backgroundColor: new Color(0, 0, 0),
-            showTimer: false
+            showTimer: false,
+            fontSize: 2
           });
           this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('BanStatus'), 5);
           this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('BanTime'), this.GetCurrentHour() + (days * 24));
@@ -478,7 +493,8 @@ class ModTool extends UIComponent {
         this.world.ui.showPopupForPlayer(player, 'You have been banned from this world you have ' + (playerBanTime - this.GetCurrentHour()) + ' hours remaining', 5, {
           fontColor: new Color(255, 0, 0),
           backgroundColor: new Color(0, 0, 0),
-          showTimer: false
+          showTimer: false,
+            fontSize: 2
         });
       }
     }
