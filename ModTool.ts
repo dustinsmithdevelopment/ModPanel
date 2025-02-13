@@ -50,7 +50,6 @@ const moderatorRoleValue:Number = roleValues.find(role => role.name === 'Moderat
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
 
-import 'horizon/core';
 
 import {UIComponent, View, Text, UINode, Binding, Callback, Pressable, DynamicList, PressableProps} from 'horizon/ui';
 import {Component, CodeBlockEvents, Player, World, PropTypes, SpawnPointGizmo, VoipSettingValues} from "horizon/core";
@@ -237,6 +236,14 @@ class ModTool extends UIComponent {
         this.ShowMainMenuOptions(modPlayer, targetPlayer);
       }, color: 'white'},
   ]
+
+
+
+  BanCheck(player:Player){
+    console.log(Math.floor(Date.now() /1000 / 60 / 60) + 'Ban Check called for ' + player.name.get());
+  }
+
+
   BuildTeleportPages(){
     this.teleportLocations.forEach((location: string) => {
 
@@ -283,7 +290,6 @@ class ModTool extends UIComponent {
       tempList.push(Pressable({
         children: Text({text: targetPlayer.name.get(), style: {color: this.ResolvePlayerColor(targetPlayer), fontSize: preferredFontSize, textAlign: 'center'}}),
         onClick: (modPlayer:Player)=>{
-          console.log(targetPlayer.name.get() + " selected by " + modPlayer.name.get());
           this.targetPlayerNameText.set('Selected: ' + targetPlayer.name.get());
           this.ShowMainMenuOptions(modPlayer, targetPlayer);
         }
@@ -297,8 +303,43 @@ class ModTool extends UIComponent {
   panelName = 'ModTool';
   panelHeight = calculatedPanelHeight;
   panelWidth = 500;
+  InitializePersistentVariables(player:Player){
+    const persistentStorageValues = this.world.persistentStorage;
+    const userRooms = persistentStorageValues.getPlayerVariable(player, CoreKey('Rooms'));
+    if (userRooms == 0) {
+      const defaultRoomValue = Number('1'.repeat(this.restrictedTeleportLocations.length));
+      this.world.persistentStorage.setPlayerVariable(player, CoreKey('Rooms'), defaultRoomValue);
+    }
+    const userPermissions = persistentStorageValues.getPlayerVariable(player, CoreKey('Permissions'));
+    if (userPermissions == 0) {
+      const defaultPermissionValue = Number('1'.repeat(this.controlledMenuPages.length));
+      this.world.persistentStorage.setPlayerVariable(player, CoreKey('Permissions'), defaultPermissionValue);
+    }
+
+  }
+  AddToPlayerList(player:Player){
+    if (!this.playerList.find((p:Player)=>p.name.get() == player.name.get())){
+      this.playerList.push(player)
+    }
+    // Update the displayed list of players if it is currently being accessed
+    if (this.currentPage == 'PlayerList') {
+      this.ShowPlayerList()
+    }
+  }
+  RemoveFromPlayerList(player:Player){
+    if (this.playerList.find((p:Player)=>p.name.get() == player.name.get())){
+      this.playerList.splice(this.playerList.indexOf(<Player>this.playerList.find((p: Player) => p.name.get() == player.name.get())),1)
+    }
+    // Update the displayed list of players if it is currently being accessed
+    if (this.currentPage == 'PlayerList') {
+      this.ShowPlayerList()
+    }
+  }
+
   start() {
+    this.playerList.splice(0, this.playerList.length);
     this.playerList.push(...this.world.getPlayers());
+    this.playerList.forEach((player:Player) => {this.BanCheck(player)})
     this.BuildTeleportPages();
     this.connectCodeBlockEvent(
         this.entity,
@@ -318,38 +359,14 @@ class ModTool extends UIComponent {
     this.ShowPlayerList()
   }
   PlayerEnterWorld(player: Player) {
-    console.log(player.name.get() + " entered world")
-    if (!this.playerList.find((p:Player)=>p.name.get() == player.name.get())){
-      this.playerList.push(player)
-    }
-    // Update the displayed list of players if it is currently being accessed
-    if (this.currentPage == 'PlayerList') {
-      this.ShowPlayerList()
-    }
-    const persistentStorageValues = this.world.persistentStorage;
-    const userRooms = persistentStorageValues.getPlayerVariable(player, CoreKey('Rooms'));
-    if (userRooms == 0) {
-      const defaultRoomValue = Number('1'.repeat(this.restrictedTeleportLocations.length));
-      this.world.persistentStorage.setPlayerVariable(player, CoreKey('Rooms'), defaultRoomValue);
-    }
-    const userPermissions = persistentStorageValues.getPlayerVariable(player, CoreKey('Permissions'));
-    if (userPermissions == 0) {
-      const defaultPermissionValue = Number('1'.repeat(this.controlledMenuPages.length));
-      this.world.persistentStorage.setPlayerVariable(player, CoreKey('Permissions'), defaultPermissionValue);
-    }
+    this.AddToPlayerList(player);
+    this.InitializePersistentVariables(player);
+    this.BanCheck(player);
 
 
   }
   PlayerExitWorld(player: Player) {
-    console.log(player.name.get() + " exited world")
-    if (this.playerList.find((p:Player)=>p.name.get() == player.name.get())){
-      this.playerList.splice(this.playerList.indexOf(<Player>this.playerList.find((p: Player) => p.name.get() == player.name.get())),1)
-    }
-    // Update the displayed list of players if it is currently being accessed
-    if (this.currentPage == 'PlayerList') {
-      this.ShowPlayerList()
-    }
-
+    this.RemoveFromPlayerList(player)
   }
   ShowPlayerList(){
     this.currentPage = 'PlayerList';
@@ -373,6 +390,8 @@ class ModTool extends UIComponent {
   }
 
   ShowMainMenuOptions(modPlayer:Player, targetPlayer:Player){
+    const loadTime = new Date().getTime()
+    console.log(loadTime)
     this.currentPage = 'MenuOptions';
     this.errorText.set(' ');
     let tempList: UINode[] = [];
