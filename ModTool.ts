@@ -13,10 +13,14 @@ const roles: { [key: string]: RoleData } = {
   '10': { name: 'Moderator', color: 'green' },
   '0': { name: 'Player', color: 'white' },
 };
+const teleportLocations = [
+  'Respawn', 'VIP', 'Jail', 'Office', 'Stage', 'Bar', 'Room1', 'Room2'
+];
+const restrictedTeleportLocations = [...teleportLocations].filter(location => location !== 'Respawn' && location !== 'Jail');
 
 // Variables required
 // Group Name: ModPanel_Core
-// Variables as numbers: Role, Rooms, Permissions
+// Variables as numbers: Role, Rooms, Permissions, BanStatus, BanTime
 
 interface RoleData {
   name: string;
@@ -52,7 +56,16 @@ const moderatorRoleValue:Number = roleValues.find(role => role.name === 'Moderat
 
 
 import {UIComponent, View, Text, UINode, Binding, Callback, Pressable, DynamicList, PressableProps} from 'horizon/ui';
-import {Component, CodeBlockEvents, Player, World, PropTypes, SpawnPointGizmo, VoipSettingValues} from "horizon/core";
+import {
+  Component,
+  CodeBlockEvents,
+  Player,
+  World,
+  PropTypes,
+  SpawnPointGizmo,
+  VoipSettingValues,
+  Color
+} from "horizon/core";
 
 interface MenuItem {
   label: string;
@@ -76,10 +89,7 @@ class ModTool extends UIComponent {
     Room1: { type: PropTypes.Entity},
     Room2: { type: PropTypes.Entity},
   };
-  private teleportLocations = [
-    'Respawn', 'VIP', 'Jail', 'Office', 'Stage', 'Bar', 'Room1', 'Room2'
-  ];
-  private restrictedTeleportLocations = [...this.teleportLocations].filter(location => location !== 'Respawn' && location !== 'Jail');
+
   private currentPage = 'PlayerList'
   private playerList: Player[] = new Array<Player>();
   private header1 = Text({text: 'Mod Panel ' + VERSION, style: {fontSize:preferredFontSize, color: 'yellow', textAlign: 'center'}})
@@ -128,7 +138,7 @@ class ModTool extends UIComponent {
         this.ShowVoiceOptionsMenuOptions(modPlayer, targetPlayer);
         }, color: 'yellow'},
       {label: 'Kick Options', onClick: (modPlayer:Player, targetPlayer:Player) => {
-        console.log(modPlayer.name.get() + " selected Kick Options on " + targetPlayer.name.get());
+        this.ShowKickPlayerMenuOptions(modPlayer, targetPlayer);
         }, color: 'orange'},
       {label: 'Player Movement', onClick: (modPlayer:Player, targetPlayer:Player) => {
         console.log(modPlayer.name.get() + " selected Player Movement on " + targetPlayer.name.get());
@@ -154,14 +164,14 @@ class ModTool extends UIComponent {
         this.ShowPlayerRoomsAccess(modPlayer, targetPlayer);
       }, color: 'purple'}
   ];
-
   private VoiceSettingsMenuPages: MenuItem[] = [
     {label: 'Back', onClick: (modPlayer:Player, targetPlayer:Player)=>{
         this.ShowMainMenuOptions(modPlayer, targetPlayer);
       }, color: 'white'},
     {label: 'Mute', onClick: (modPlayer:Player, targetPlayer:Player) => {
         const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
-        const hasAccess = (playerVoiceAccess == '9');
+        const playerModValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const hasAccess = (playerVoiceAccess == '9' || playerModValue >= managerRoleValue );
         if (hasAccess){
           targetPlayer.setVoipSetting(VoipSettingValues.Mute);
           this.errorText.set('Voice set to mute');
@@ -171,7 +181,8 @@ class ModTool extends UIComponent {
       }, color: 'yellow'},
     {label: 'Whisper', onClick: (modPlayer:Player, targetPlayer:Player) => {
         const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
-        const hasAccess = (playerVoiceAccess == '9');
+        const playerModValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const hasAccess = (playerVoiceAccess == '9' || playerModValue >= managerRoleValue );
         if (hasAccess){
           targetPlayer.setVoipSetting(VoipSettingValues.Whisper);
           this.errorText.set('Voice set to whisper');
@@ -181,7 +192,8 @@ class ModTool extends UIComponent {
       }, color: 'yellow'},
     {label: 'Nearby', onClick: (modPlayer:Player, targetPlayer:Player) => {
         const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
-        const hasAccess = (playerVoiceAccess == '9');
+        const playerModValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const hasAccess = (playerVoiceAccess == '9' || playerModValue >= managerRoleValue );
         if (hasAccess){
           targetPlayer.setVoipSetting(VoipSettingValues.Nearby);
           this.errorText.set('Voice set to nearby');
@@ -191,7 +203,8 @@ class ModTool extends UIComponent {
       }, color: 'yellow'},
     {label: 'Default', onClick: (modPlayer:Player, targetPlayer:Player) => {
         const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
-        const hasAccess = (playerVoiceAccess == '9');
+        const playerModValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const hasAccess = (playerVoiceAccess == '9' || playerModValue >= managerRoleValue );
         if (hasAccess){
           targetPlayer.setVoipSetting(VoipSettingValues.Default);
           this.errorText.set('Voice set to default');
@@ -201,7 +214,8 @@ class ModTool extends UIComponent {
       }, color: 'yellow'},
     {label: 'Environment', onClick: (modPlayer:Player, targetPlayer:Player) => {
         const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
-        const hasAccess = (playerVoiceAccess == '9');
+        const playerModValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const hasAccess = (playerVoiceAccess == '9' || playerModValue >= managerRoleValue );
         if (hasAccess){
           targetPlayer.setVoipSetting(VoipSettingValues.Environment);
           this.errorText.set('Voice set to environment');
@@ -211,7 +225,8 @@ class ModTool extends UIComponent {
       }, color: 'yellow'},
     {label: 'Extended', onClick: (modPlayer:Player, targetPlayer:Player) => {
         const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
-        const hasAccess = (playerVoiceAccess == '9');
+        const playerModValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const hasAccess = (playerVoiceAccess == '9' || playerModValue >= managerRoleValue );
         if (hasAccess){
           targetPlayer.setVoipSetting(VoipSettingValues.Extended);
           this.errorText.set('Voice set to extended');
@@ -221,7 +236,8 @@ class ModTool extends UIComponent {
       }, color: 'yellow'},
     {label: 'Global', onClick: (modPlayer:Player, targetPlayer:Player) => {
         const playerVoiceAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Permissions')).toString()[this.controlledMenuPages.indexOf('Voice Settings')];
-        const hasAccess = (playerVoiceAccess == '9');
+        const playerModValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+        const hasAccess = (playerVoiceAccess == '9' || playerModValue >= managerRoleValue );
         if (hasAccess){
           targetPlayer.setVoipSetting(VoipSettingValues.Global);
           this.errorText.set('Voice set to global');
@@ -230,30 +246,21 @@ class ModTool extends UIComponent {
         }
       }, color: 'yellow'}
   ];
-
   private teleportOptionsMenuPages: MenuItem[] = [
     {label: 'Back', onClick: (modPlayer:Player, targetPlayer:Player)=>{
         this.ShowMainMenuOptions(modPlayer, targetPlayer);
       }, color: 'white'},
   ]
-
-
-
-  BanCheck(player:Player){
-    console.log(Math.floor(Date.now() /1000 / 60 / 60) + 'Ban Check called for ' + player.name.get());
-  }
-
-
   BuildTeleportPages(){
-    this.teleportLocations.forEach((location: string) => {
+    teleportLocations.forEach((location: string) => {
 
       this.teleportOptionsMenuPages.push({label: location, onClick: (modPlayer:Player, targetPlayer:Player) => {
           console.log(modPlayer.name.get() + " selected Teleport:" + location + " on " + targetPlayer.name.get());
-          if (this.restrictedTeleportLocations.includes(location)) {
+          if (restrictedTeleportLocations.includes(location)) {
             let hasAccess = false;
             const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
             const modAccess = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Rooms')).toString();
-            const modAccessValue = modAccess[this.restrictedTeleportLocations.indexOf(location)];
+            const modAccessValue = modAccess[restrictedTeleportLocations.indexOf(location)];
             console.log(String(modAccessValue) + " is the value of " + location + " in the mod's access list");
             if (modLevel >= managerRoleValue) hasAccess = true;
             if (modAccessValue == '9') hasAccess = true;
@@ -271,6 +278,119 @@ class ModTool extends UIComponent {
         }, color: 'green'});
     })
   }
+  private kickOptionsMenuPages: MenuItem[] = [
+    {label: 'Back', onClick: (modPlayer:Player, targetPlayer:Player)=>{
+        this.ShowMainMenuOptions(modPlayer, targetPlayer);
+      }, color: 'white'},
+    {label: 'Warn Player', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        this.world.ui.showPopupForPlayer(targetPlayer, 'This is a warning, stop what you are doing.',5,{fontColor: new Color(255,0,0), backgroundColor: new Color(0,0,0), showTimer:false});
+        this.errorText.set('Player warned');
+      }, color: 'orange'},
+    {label: 'Kick', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        this.BanPlayer(modPlayer, targetPlayer, 0);
+      }, color: 'orange'},
+    {label: '1 Day Kick', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        this.BanPlayer(modPlayer, targetPlayer, 1);
+      }, color: 'orange'},
+    {label: '3 Day Kick', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        this.BanPlayer(modPlayer, targetPlayer, 3);
+      }, color: 'orange'},
+    {label: '7 Day Kick', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        this.BanPlayer(modPlayer, targetPlayer, 7);
+      }, color: 'orange'},
+    {label: '14 Day Kick', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        this.BanPlayer(modPlayer, targetPlayer, 14);
+      }, color: 'orange'},
+    {label: '28 Day Kick', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        this.BanPlayer(modPlayer, targetPlayer, 28);
+      }, color: 'orange'},
+    {label: '90 Day Kick', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        this.BanPlayer(modPlayer, targetPlayer,90);
+      }, color: 'orange'},
+    {label: '365 Day Kick', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        this.BanPlayer(modPlayer, targetPlayer, 365);
+      }, color: 'orange'},
+    {label: ' ', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        return
+      }, color: 'orange'},
+    {label: 'UnBan', onClick: (modPlayer:Player, targetPlayer:Player) => {
+        this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('BanStatus'), 0);
+        this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('BanTime'), 0);
+        this.TeleportPlayer(targetPlayer, 'Respawn');
+        this.errorText.set('Player unbanned');
+      }, color: 'orange'},
+
+  ];
+
+
+
+  BanPlayer(modPlayer:Player, targetPlayer:Player, days:number){
+    const modValue = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
+    const targetValue = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
+    if (modValue >= moderatorRoleValue && targetValue < moderatorRoleValue){
+      if (days == 0) {
+        this.TeleportPlayer(targetPlayer, 'Jail');
+        this.world.ui.showPopupForPlayer(targetPlayer, 'You have been kicked by a moderator', 5, {
+          fontColor: new Color(255, 0, 0),
+          backgroundColor: new Color(0, 0, 0),
+          showTimer: false
+        });
+        this.errorText.set('Player kicked');
+      } else if (days > 0 && days <= 14) {
+        this.TeleportPlayer(targetPlayer, 'Jail');
+        this.world.ui.showPopupForPlayer(targetPlayer, 'You have been banned for ' + days + ' days by a moderator', 5, {
+          fontColor: new Color(255, 0, 0),
+          backgroundColor: new Color(0, 0, 0),
+          showTimer: false
+        });
+        this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('BanStatus'), 5);
+        this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('BanTime'), this.GetCurrentHour() + (days * 24));
+        this.errorText.set('Player banned for ' + days + ' days.');
+      } else if (days > 14) {
+        if (modValue >= managerRoleValue) {
+          this.TeleportPlayer(targetPlayer, 'Jail');
+          this.world.ui.showPopupForPlayer(targetPlayer, 'You have been banned for ' + days + ' days by a manager', 5, {
+            fontColor: new Color(255, 0, 0),
+            backgroundColor: new Color(0, 0, 0),
+            showTimer: false
+          });
+          this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('BanStatus'), 5);
+          this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('BanTime'), this.GetCurrentHour() + (days * 24));
+          this.errorText.set('Player banned for ' + days + ' days.');
+        }else this.errorText.set('Only managers can ban players for more than 14 days.');
+      }
+    }else {
+      if (modValue < moderatorRoleValue)this.errorText.set('You do not have permission to ban players.');
+      else if (targetValue >= moderatorRoleValue)this.errorText.set('Moderators cannot be banned, please remove moderator status from the player.');
+    }
+
+  }
+  BanCheck(player:Player){
+    console.log(this.GetCurrentHour() + ' Ban Check called for ' + player.name.get());
+    const playerBanStatus = this.world.persistentStorage.getPlayerVariable(player, CoreKey('BanStatus'));
+    const playerBanTime = this.world.persistentStorage.getPlayerVariable(player, CoreKey('BanTime'));
+    if (playerBanStatus == 5) {
+      if (playerBanTime <= this.GetCurrentHour()){
+        // Unbanning Player
+        this.world.persistentStorage.setPlayerVariable(player, CoreKey('BanStatus'), 0);
+        this.world.persistentStorage.setPlayerVariable(player, CoreKey('BanTime'), 0);
+        this.TeleportPlayer(player, 'Respawn');
+      }else {
+        this.TeleportPlayer(player, 'Jail');
+        this.world.ui.showPopupForPlayer(player, 'You have been banned from this world you have ' + (playerBanTime - this.GetCurrentHour()) + ' hours remaining', 5, {
+          fontColor: new Color(255, 0, 0),
+          backgroundColor: new Color(0, 0, 0),
+          showTimer: false
+        });
+      }
+    }
+  }
+  GetCurrentHour(){
+    return Math.floor(Date.now() /1000 / 60 / 60)
+  }
+
+
+
 
   TeleportPlayer(targetPlayer:Player, location:string){
     //TODO this needs to be written
@@ -307,7 +427,7 @@ class ModTool extends UIComponent {
     const persistentStorageValues = this.world.persistentStorage;
     const userRooms = persistentStorageValues.getPlayerVariable(player, CoreKey('Rooms'));
     if (userRooms == 0) {
-      const defaultRoomValue = Number('1'.repeat(this.restrictedTeleportLocations.length));
+      const defaultRoomValue = Number('1'.repeat(restrictedTeleportLocations.length));
       this.world.persistentStorage.setPlayerVariable(player, CoreKey('Rooms'), defaultRoomValue);
     }
     const userPermissions = persistentStorageValues.getPlayerVariable(player, CoreKey('Permissions'));
@@ -444,11 +564,11 @@ class ModTool extends UIComponent {
           onClick: (player: Player) => {
             if (modLevel > role.roleLevelValue && modLevel > targetLevel) {
               if (role.name == 'Manager') {
-                this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), Number('9'.repeat(this.restrictedTeleportLocations.length)));
+                this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), Number('9'.repeat(restrictedTeleportLocations.length)));
                 this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Permissions'), Number('9'.repeat(this.controlledMenuPages.length)));
               }
               if (role.name == 'Player') {
-                this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), Number('1'.repeat(this.restrictedTeleportLocations.length)));
+                this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), Number('1'.repeat(restrictedTeleportLocations.length)));
                 this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Permissions'), Number('1'.repeat(this.controlledMenuPages.length)));
               }
               this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Role'), role.roleLevelValue);
@@ -478,7 +598,7 @@ class ModTool extends UIComponent {
           const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
           const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
           if (modLevel > targetLevel) {
-            let newAccess = Number('9'.repeat(this.restrictedTeleportLocations.length));
+            let newAccess = Number('9'.repeat(restrictedTeleportLocations.length));
             this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), newAccess);
             this.errorText.set(' ');
             this.ShowPlayerRoomsAccess(player, targetPlayer);
@@ -493,7 +613,7 @@ class ModTool extends UIComponent {
           const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
           const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
           if (modLevel > targetLevel) {
-            let newAccess = Number('1'.repeat(this.restrictedTeleportLocations.length));
+            let newAccess = Number('1'.repeat(restrictedTeleportLocations.length));
             this.world.persistentStorage.setPlayerVariable(targetPlayer, CoreKey('Rooms'), newAccess);
             this.errorText.set(' ');
             this.ShowPlayerRoomsAccess(player, targetPlayer);
@@ -505,15 +625,15 @@ class ModTool extends UIComponent {
     const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
     const targetLevel = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Role'));
     const roomsAccess = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('Rooms')).toString();
-    for (let i = 0; i < this.restrictedTeleportLocations.length; i++) {
+    for (let i = 0; i < restrictedTeleportLocations.length; i++) {
 
       let tempColor = 'red'
       const hasAccess = roomsAccess[i] == '9';
       if (hasAccess) tempColor = 'green';
       tempList.push(Pressable({
-        children: Text({text: this.restrictedTeleportLocations[i], style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center', backgroundColor: tempColor}}),
+        children: Text({text: restrictedTeleportLocations[i], style: {color: 'white', fontSize: preferredFontSize, textAlign: 'center', backgroundColor: tempColor}}),
         onClick: (player:Player) => {
-          console.log(this.restrictedTeleportLocations[i] + " was clicked");
+          console.log(restrictedTeleportLocations[i] + " was clicked");
           if (modLevel > targetLevel) {
             console.log('Mod level is greater than target level')
             let newAccess = roomsAccess;
@@ -601,6 +721,10 @@ class ModTool extends UIComponent {
   ShowVoiceOptionsMenuOptions(modPlayer:Player, targetPlayer:Player){
     this.currentPage = 'Voice Settings';
     this.BuildMenu(modPlayer, targetPlayer, this.VoiceSettingsMenuPages);
+  }
+  ShowKickPlayerMenuOptions(modPlayer:Player, targetPlayer:Player){
+    this.currentPage = 'Kick Options';
+    this.BuildMenu(modPlayer, targetPlayer, this.kickOptionsMenuPages);
   }
   initializeUI() {
 
