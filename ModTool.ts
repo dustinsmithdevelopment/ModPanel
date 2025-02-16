@@ -4,7 +4,7 @@
 
 // Variables required
 // Group Name: ModPanel_Core
-// Variables as numbers: Role, Rooms, Permissions, BanStatus, BanTime
+// Variables as numbers: Role, Rooms, Permissions, BanStatus, BanTime, KickCount, VisitCount, TimeInWorld
 
 // Enter your name below
 const WORLD_OWNER = 'TechGryphon';
@@ -131,22 +131,28 @@ class ModTool extends UIComponent {
         this.ShowPlayerList();
         }, color: 'white'},
       {label: 'Player Management', onClick: (modPlayer:Player, targetPlayer:Player) => {
-        this.ShowPlayerManagementMenuOptions(modPlayer, targetPlayer);
+              this.currentPage = 'PlayerManagement';
+              this.errorText.set(' ');
+              this.BuildMenu(modPlayer, targetPlayer, this.playerManagementMenuPages);
         }, color: 'purple'},
       {label: 'Teleport Options', onClick: (modPlayer:Player, targetPlayer:Player) => {
         this.ShowTeleportOptionsMenuOptions(modPlayer, targetPlayer);
         }, color: 'green'},
       {label: 'Voice Settings', onClick: (modPlayer:Player, targetPlayer:Player) => {
-        this.ShowVoiceOptionsMenuOptions(modPlayer, targetPlayer);
+              this.currentPage = 'Voice Settings';
+              this.BuildMenu(modPlayer, targetPlayer, this.VoiceSettingsMenuPages);
         }, color: 'yellow'},
       {label: 'Kick Options', onClick: (modPlayer:Player, targetPlayer:Player) => {
-        this.ShowKickPlayerMenuOptions(modPlayer, targetPlayer);
+              this.currentPage = 'Kick Options';
+              this.BuildMenu(modPlayer, targetPlayer, this.kickOptionsMenuPages);
         }, color: 'orange'},
       {label: 'Player Movement', onClick: (modPlayer:Player, targetPlayer:Player) => {
-        this.ShowPlayerMovementMenuOptions(modPlayer, targetPlayer);
+              this.currentPage = 'Player Movement';
+              this.BuildMenu(modPlayer, targetPlayer, this.playerMovementMenuPages);
         }, color: 'teal'},
       {label: 'World Settings', onClick: (modPlayer:Player, targetPlayer:Player) => {
-        console.log(modPlayer.name.get() + " selected World Settings on " + targetPlayer.name.get());
+        this.currentPage = 'World Settings';
+        this.BuildMenu(modPlayer, targetPlayer, this.worldSettingsMenuPages);
         }, color: 'blue'},
       {label: 'Stats', onClick: (modPlayer:Player, targetPlayer:Player) => {
         console.log(modPlayer.name.get() + " selected Stats on " + targetPlayer.name.get());
@@ -407,7 +413,36 @@ class ModTool extends UIComponent {
       }, color: 'teal'},
 
   ];
+  private worldSettingsMenuPages: MenuItem[] = [
+        {label: 'Back', onClick: (modPlayer:Player, targetPlayer:Player)=>{
+                this.ShowMainMenuOptions(modPlayer, targetPlayer);
+            }, color: 'white'},
+        {label: 'Close Instance', onClick: async (modPlayer:Player, targetPlayer:Player)=>{
+                this.world.matchmaking.allowPlayerJoin(false).then(()=>{
+                        this.world.ui.showPopupForEveryone('This instance is now closed. Please proceed to portal or select swap session in your menu.', 5, {
+                            fontColor: new Color(255, 0, 0),
+                            backgroundColor: new Color(0, 0, 0),
+                            showTimer: false,
+                            fontSize: 2
+                        });
+                        this.errorText.set('Instance closed');
 
+                });
+
+            }, color: 'red'},
+        {label: 'Reopen Instance', onClick: async (modPlayer:Player, targetPlayer:Player)=>{
+                    this.world.matchmaking.allowPlayerJoin(true).then(() => {
+                        this.world.ui.showPopupForEveryone('This instance will remain open. Have a great time.', 5, {
+                            fontColor: new Color(255, 0, 0),
+                            backgroundColor: new Color(0, 0, 0),
+                            showTimer: false,
+                            fontSize: 2
+                        });
+                        this.errorText.set('Instance reopened');
+                    }
+                );
+            }, color: 'green'}
+    ]
   private grabbedPlayers = new Map<Player, Vec3>();
   GrabPlayer(modPlayer:Player,targetPlayer:Player){
     const playerPosition = targetPlayer.position.get();
@@ -428,6 +463,7 @@ class ModTool extends UIComponent {
     if (modValue >= moderatorRoleValue && targetValue < moderatorRoleValue){
       if (days == 0) {
         this.TeleportPlayer(targetPlayer, 'Jail');
+        this.AddKick(targetPlayer);
         this.world.ui.showPopupForPlayer(targetPlayer, 'You have been kicked by a moderator', 5, {
           fontColor: new Color(255, 0, 0),
           backgroundColor: new Color(0, 0, 0),
@@ -437,6 +473,7 @@ class ModTool extends UIComponent {
         this.errorText.set('Player kicked');
       } else if (days > 0 && days <= 14) {
         this.TeleportPlayer(targetPlayer, 'Jail');
+        this.AddKick(targetPlayer);
         if (days == 1){this.world.ui.showPopupForPlayer(targetPlayer, 'You have been banned for ' + days + ' day by a moderator', 5, {
                 fontColor: new Color(255, 0, 0),
                 backgroundColor: new Color(0, 0, 0),
@@ -461,6 +498,7 @@ class ModTool extends UIComponent {
       } else if (days > 14) {
         if (modValue >= managerRoleValue) {
           this.TeleportPlayer(targetPlayer, 'Jail');
+          this.AddKick(targetPlayer);
           this.world.ui.showPopupForPlayer(targetPlayer, 'You have been banned for ' + days + ' days by a manager', 5, {
             fontColor: new Color(255, 0, 0),
             backgroundColor: new Color(0, 0, 0),
@@ -502,7 +540,14 @@ class ModTool extends UIComponent {
   GetCurrentHour(){
     return Math.floor(Date.now() /1000 / 60 / 60)
   }
-
+  AddVisit(player:Player){
+      const currentVisits = this.world.persistentStorage.getPlayerVariable(player, CoreKey('VisitCount'));
+      this.world.persistentStorage.setPlayerVariable(player, CoreKey('VisitCount'), currentVisits + 1);
+  }
+  AddKick(player:Player){
+      const currentKicks = this.world.persistentStorage.getPlayerVariable(player, CoreKey('KickCount'));
+      this.world.persistentStorage.setPlayerVariable(player, CoreKey('KickCount'), currentKicks + 1);
+  }
 
 
 
@@ -596,8 +641,7 @@ class ModTool extends UIComponent {
     this.AddToPlayerList(player);
     this.InitializePersistentVariables(player);
     this.BanCheck(player);
-
-
+    this.AddVisit(player);
   }
   PlayerExitWorld(player: Player) {
     this.RemoveFromPlayerList(player)
@@ -646,11 +690,7 @@ class ModTool extends UIComponent {
     tempList.push(this.resetButton);
     this.displayPressableListBinding.set(tempList);
   }
-  ShowPlayerManagementMenuOptions(modPlayer:Player, targetPlayer:Player){
-    this.currentPage = 'PlayerManagement';
-    this.errorText.set(' ');
-    this.BuildMenu(modPlayer, targetPlayer, this.playerManagementMenuPages);
-  }
+
   ShowTeleportOptionsMenuOptions(modPlayer:Player, targetPlayer:Player){
     this.currentPage = 'TeleportOptions';
     this.BuildMenu(modPlayer, targetPlayer, this.teleportOptionsMenuPages);
@@ -659,7 +699,11 @@ class ModTool extends UIComponent {
     this.currentPage = 'PlayerRoles';
     let tempList: UINode[] = [Pressable({
       children: Text({text: 'Back', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
-      onClick: (player:Player) => {this.ShowPlayerManagementMenuOptions(player, targetPlayer)}
+      onClick: (player:Player) => {
+          this.currentPage = 'PlayerManagement';
+          this.errorText.set(' ');
+          this.BuildMenu(modPlayer, targetPlayer, this.playerManagementMenuPages);
+      }
     })];
     roleValues.forEach((role: RoleValue) => {
       const modLevel = this.world.persistentStorage.getPlayerVariable(modPlayer, CoreKey('Role'));
@@ -703,7 +747,11 @@ class ModTool extends UIComponent {
     let tempList: UINode[] = [
         Pressable({
       children: Text({text: 'Back', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
-      onClick: (player:Player) => {this.ShowPlayerManagementMenuOptions(player, targetPlayer)}
+      onClick: (player:Player) => {
+          this.currentPage = 'PlayerManagement';
+          this.errorText.set(' ');
+          this.BuildMenu(player, targetPlayer, this.playerManagementMenuPages);
+      }
     }),
       Pressable({
         children: Text({text: 'Add all rooms', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
@@ -769,7 +817,11 @@ class ModTool extends UIComponent {
     let tempList: UINode[] = [
       Pressable({
         children: Text({text: 'Back', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
-        onClick: (player:Player) => {this.ShowPlayerManagementMenuOptions(player, targetPlayer)}
+        onClick: (player:Player) => {
+            this.currentPage = 'PlayerManagement';
+            this.errorText.set(' ');
+            this.BuildMenu(player, targetPlayer, this.playerManagementMenuPages);
+        }
       }),
       Pressable({
         children: Text({text: 'Add all permissions', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
@@ -830,18 +882,6 @@ class ModTool extends UIComponent {
       }));
     }
     this.displayPressableListBinding.set(tempList);
-  }
-  ShowVoiceOptionsMenuOptions(modPlayer:Player, targetPlayer:Player){
-    this.currentPage = 'Voice Settings';
-    this.BuildMenu(modPlayer, targetPlayer, this.VoiceSettingsMenuPages);
-  }
-  ShowKickPlayerMenuOptions(modPlayer:Player, targetPlayer:Player){
-    this.currentPage = 'Kick Options';
-    this.BuildMenu(modPlayer, targetPlayer, this.kickOptionsMenuPages);
-  }
-  ShowPlayerMovementMenuOptions(modPlayer:Player, targetPlayer:Player){
-    this.currentPage = 'Player Movement';
-    this.BuildMenu(modPlayer, targetPlayer, this.playerMovementMenuPages);
   }
   initializeUI() {
 
