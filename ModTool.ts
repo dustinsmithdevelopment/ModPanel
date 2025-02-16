@@ -47,9 +47,9 @@ function getRoles(roles: { [key: string]: RoleData }): RoleValue[] {
 
 const roleValues = getRoles(ROLES);
 // @ts-ignore: Value is defined in above function but compiler is unable to see it when type checking
-const managerRoleValue:Number = roleValues.find(role => role.name === 'Manager').roleLevelValue;
+const managerRoleValue:number = roleValues.find(role => role.name === 'Manager').roleLevelValue;
 // @ts-ignore: Value is defined in above function but compiler is unable to see it when type checking
-const moderatorRoleValue:Number = roleValues.find(role => role.name === 'Moderator').roleLevelValue;
+const moderatorRoleValue:number = roleValues.find(role => role.name === 'Moderator').roleLevelValue;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -104,7 +104,7 @@ class ModTool extends UIComponent {
   private resetButton = Pressable({
     children: Text({text: 'Reset World', style: {color: 'red', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
     onClick: (player:Player) => {
-      const modLevel = this.world.persistentStorage.getPlayerVariable(player, CoreKey('Role'));
+      const modLevel:number = this.world.persistentStorage.getPlayerVariable(player, CoreKey('Role'));
       if (modLevel >= moderatorRoleValue) this.DisplayWorldReset(); else this.errorText.set('You do not have permission to reset the world.');
     }
   });
@@ -540,10 +540,6 @@ class ModTool extends UIComponent {
   GetCurrentHour(){
     return Math.floor(Date.now() /1000 / 60 / 60)
   }
-  AddVisit(player:Player){
-      const currentVisits = this.world.persistentStorage.getPlayerVariable(player, CoreKey('VisitCount'));
-      this.world.persistentStorage.setPlayerVariable(player, CoreKey('VisitCount'), currentVisits + 1);
-  }
   AddKick(player:Player){
       const currentKicks = this.world.persistentStorage.getPlayerVariable(player, CoreKey('KickCount'));
       this.world.persistentStorage.setPlayerVariable(player, CoreKey('KickCount'), currentKicks + 1);
@@ -641,7 +637,6 @@ class ModTool extends UIComponent {
     this.AddToPlayerList(player);
     this.InitializePersistentVariables(player);
     this.BanCheck(player);
-    this.AddVisit(player);
   }
   PlayerExitWorld(player: Player) {
     this.RemoveFromPlayerList(player)
