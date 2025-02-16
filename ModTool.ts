@@ -120,10 +120,10 @@ class ModTool extends UIComponent {
       children: Text({text: 'Cancel Reset', style: {color: 'green', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
       onClick: (player:Player) => {this.ShowPlayerList()}
     }));
-    this.displayPressableListBinding.set(tempList);
+    this.displayListBinding.set(tempList);
   }
   private noPlayersText = [Text({text: 'No Players', style: {fontSize:PREFERRED_FONT_SIZE, color: 'yellow', textAlign: 'center'}})]
-  displayPressableListBinding = new Binding<UINode[]>([]);
+  displayListBinding = new Binding<UINode[]>([]);
 
   private controlledMenuPages:String[] = ['Teleport Options', 'Voice Settings', 'Kick Options', 'Player Movement', 'World Settings']
   private mainMenuPages: MenuItem[] = [
@@ -155,7 +155,7 @@ class ModTool extends UIComponent {
         this.BuildMenu(modPlayer, targetPlayer, this.worldSettingsMenuPages);
         }, color: 'blue'},
       {label: 'Stats', onClick: (modPlayer:Player, targetPlayer:Player) => {
-        console.log(modPlayer.name.get() + " selected Stats on " + targetPlayer.name.get());
+        this.showStats(modPlayer,targetPlayer);
         }, color: 'limegreen'}
   ]
   private playerManagementMenuPages: MenuItem[] = [
@@ -442,7 +442,27 @@ class ModTool extends UIComponent {
                     }
                 );
             }, color: 'green'}
-    ]
+    ];
+  private showStats(modPlayer:Player, targetPlayer:Player){
+      const playerTime = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('TimeInWorld'));
+      const playerVisits = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('VisitCount'));
+      const playerKicks = this.world.persistentStorage.getPlayerVariable(targetPlayer, CoreKey('KickCount'));
+      const statList:UINode[] = [
+          Pressable({
+              children: Text({text: 'Back', style: {color: 'white', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
+              onClick: (player:Player)=>{
+                  this.ShowMainMenuOptions(player, targetPlayer);
+              }
+          }),
+          this.displayGap,this.displayGap,
+          Text({text: 'Name: ' + targetPlayer.name.get(), style: {color: 'limegreen', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
+          Text({text: 'Hours: ' + parseFloat((playerTime / 60).toFixed(4)), style: {color: 'limegreen', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
+          Text({text: 'Visits: ' + playerVisits, style: {color: 'limegreen', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
+          Text({text: 'Kicks: ' + playerKicks, style: {color: 'limegreen', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}})
+      ];
+      this.displayListBinding.set(statList);
+  }
+
   private grabbedPlayers = new Map<Player, Vec3>();
   GrabPlayer(modPlayer:Player,targetPlayer:Player){
     const playerPosition = targetPlayer.position.get();
@@ -570,7 +590,7 @@ class ModTool extends UIComponent {
         }
         }));
     })
-    this.displayPressableListBinding.set(tempList);
+    this.displayListBinding.set(tempList);
   }
 
 
@@ -647,7 +667,7 @@ class ModTool extends UIComponent {
     this.targetPlayerNameText.set(' ');
     this.errorText.set(' ');
     if (this.playerList.length === 0) {
-      this.displayPressableListBinding.set(this.noPlayersText);
+      this.displayListBinding.set(this.noPlayersText);
     }else {
       this.CreatePlayerList();
     }
@@ -660,7 +680,7 @@ class ModTool extends UIComponent {
         onClick: (player:Player) => {page.onClick(player, targetPlayer)}
       }));
     })
-    this.displayPressableListBinding.set(tempList);
+    this.displayListBinding.set(tempList);
   }
 
   ShowMainMenuOptions(modPlayer:Player, targetPlayer:Player){
@@ -683,7 +703,7 @@ class ModTool extends UIComponent {
     })
     tempList.push(this.displayGap);
     tempList.push(this.resetButton);
-    this.displayPressableListBinding.set(tempList);
+    this.displayListBinding.set(tempList);
   }
 
   ShowTeleportOptionsMenuOptions(modPlayer:Player, targetPlayer:Player){
@@ -734,7 +754,7 @@ class ModTool extends UIComponent {
         }));
       }
     })
-    this.displayPressableListBinding.set(tempList);
+    this.displayListBinding.set(tempList);
 
   }
   ShowPlayerRoomsAccess(modPlayer:Player, targetPlayer:Player){
@@ -805,7 +825,7 @@ class ModTool extends UIComponent {
         }
       }));
     }
-    this.displayPressableListBinding.set(tempList);
+    this.displayListBinding.set(tempList);
   }
   ShowPlayerPermissions(modPlayer:Player, targetPlayer:Player){
     this.currentPage = 'PlayerPermissions';
@@ -876,13 +896,13 @@ class ModTool extends UIComponent {
         }
       }));
     }
-    this.displayPressableListBinding.set(tempList);
+    this.displayListBinding.set(tempList);
   }
   initializeUI() {
 
     return View({
 
-      children:[this.header1, this.header2, this.displayGap, this.playerNameDisplay, this.errorDisplay,DynamicList({data: this.displayPressableListBinding, renderItem : (pressableItem: UINode)=> {
+      children:[this.header1, this.header2, this.displayGap, this.playerNameDisplay, this.errorDisplay,DynamicList({data: this.displayListBinding, renderItem : (pressableItem: UINode)=> {
           return pressableItem;
         }, style: {width: 500,}})],
       style: {
