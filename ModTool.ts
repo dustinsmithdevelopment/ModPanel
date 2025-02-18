@@ -49,7 +49,7 @@ const roleValues = getRoles(ROLES);
 // @ts-ignore: Value is defined in above function but compiler is unable to see it when type checking
 export const managerRoleValue:number = roleValues.find(role => role.name === 'Manager').roleLevelValue;
 // @ts-ignore: Value is defined in above function but compiler is unable to see it when type checking
-const moderatorRoleValue:number = roleValues.find(role => role.name === 'Moderator').roleLevelValue;
+export const moderatorRoleValue:number = roleValues.find(role => role.name === 'Moderator').roleLevelValue;
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
