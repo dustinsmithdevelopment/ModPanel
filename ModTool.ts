@@ -20,7 +20,7 @@ const ROLES: { [key: string]: RoleData } = {
 const TELEPORT_LOCATIONS = [
   'Respawn', 'VIP', 'Jail', 'Office', 'Stage', 'Bar', 'Room1', 'Room2'
 ];
-const RESTRICTED_TELEPORT_LOCATIONS = [...TELEPORT_LOCATIONS].filter(location => location !== 'Respawn' && location !== 'Jail');
+export const RESTRICTED_TELEPORT_LOCATIONS = [...TELEPORT_LOCATIONS].filter(location => location !== 'Respawn' && location !== 'Jail');
 
 
 const calculatedPanelHeight = PREFERRED_FONT_SIZE * 40;
