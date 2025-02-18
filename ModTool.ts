@@ -47,7 +47,7 @@ function getRoles(roles: { [key: string]: RoleData }): RoleValue[] {
 
 const roleValues = getRoles(ROLES);
 // @ts-ignore: Value is defined in above function but compiler is unable to see it when type checking
-const managerRoleValue:number = roleValues.find(role => role.name === 'Manager').roleLevelValue;
+export const managerRoleValue:number = roleValues.find(role => role.name === 'Manager').roleLevelValue;
 // @ts-ignore: Value is defined in above function but compiler is unable to see it when type checking
 const moderatorRoleValue:number = roleValues.find(role => role.name === 'Moderator').roleLevelValue;
 
@@ -75,7 +75,7 @@ interface MenuItem {
   color: string;
 }
 
-function CoreKey(variableName: string) {
+export function CoreKey(variableName: string) {
   return 'ModPanel_Core' + ':' + variableName;
 }
 
@@ -537,7 +537,6 @@ class ModTool extends UIComponent {
 
   }
   BanCheck(player:Player){
-    console.log(this.GetCurrentHour() + ' Ban Check called for ' + player.name.get());
     const playerBanStatus = this.world.persistentStorage.getPlayerVariable(player, CoreKey('BanStatus'));
     const playerBanTime = this.world.persistentStorage.getPlayerVariable(player, CoreKey('BanTime'));
     if (playerBanStatus == 5) {
@@ -568,8 +567,6 @@ class ModTool extends UIComponent {
 
 
   TeleportPlayer(targetPlayer:Player, location:string){
-    //TODO this needs to be written
-    console.log(targetPlayer.name.get() + " teleported to " + location);
     // @ts-ignore: Object is recognized as type 'Never' and does not allow compilation but syntax is valid
     this.props[location].as(SpawnPointGizmo).teleportPlayer(targetPlayer);
   }
