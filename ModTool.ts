@@ -8,6 +8,20 @@
 
 // Enter your name below
 const WORLD_OWNER = 'TechGryphon';
+
+
+import {Binding, DynamicList, Pressable, Text, UIComponent, UINode, View} from 'horizon/ui';
+import {
+    CodeBlockEvents,
+    Color,
+    LocalEvent,
+    Player,
+    PropTypes,
+    SpawnPointGizmo,
+    Vec3,
+    VoipSettingValues
+} from "horizon/core";
+
 const VERSION = 'v1.0';
 const PREFERRED_FONT_SIZE = 36;
 const DEFAULT_PLAYER_SPEED = 4.50;
@@ -57,18 +71,9 @@ export const moderatorRoleValue:number = roleValues.find(role => role.name === '
 ///////////////////////////////////////////////////////////////////////////////////////
 
 
-import {UIComponent, View, Text, UINode, Binding, Callback, Pressable, DynamicList, PressableProps} from 'horizon/ui';
-import {
-  Component,
-  CodeBlockEvents,
-  Player,
-  World,
-  PropTypes,
-  SpawnPointGizmo,
-  VoipSettingValues,
-  Color, Vec3
-} from "horizon/core";
 
+
+export const resetEvent = new LocalEvent<{ message: Player }>('ResetModTool');
 interface MenuItem {
   label: string;
   onClick: (modPlayer:Player, targetPlayer:Player) => void;
@@ -80,7 +85,7 @@ export function CoreKey(variableName: string) {
 }
 
 
-class ModTool extends UIComponent {
+export class ModTool extends UIComponent {
   static propsDefinition = {
     Respawn: { type: PropTypes.Entity},
     VIP: { type: PropTypes.Entity},
@@ -91,6 +96,11 @@ class ModTool extends UIComponent {
     Room1: { type: PropTypes.Entity},
     Room2: { type: PropTypes.Entity},
   };
+  private currentOwner: Player | undefined;
+  public Reset(player:Player){
+      this.currentOwner = player;
+      this.ShowPlayerList(player);
+  }
 
   private currentPage = 'PlayerList'
   private playerList: Player[] = new Array<Player>();
@@ -118,7 +128,7 @@ class ModTool extends UIComponent {
     tempList.push(this.displayGap);
     tempList.push(Pressable({
       children: Text({text: 'Cancel Reset', style: {color: 'green', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
-      onClick: (player:Player) => {this.ShowPlayerList()}
+      onClick: (player:Player) => {this.ShowPlayerList(<Player>this.currentOwner)}
     }));
     this.displayListBinding.set(tempList);
   }
@@ -128,7 +138,7 @@ class ModTool extends UIComponent {
   private controlledMenuPages:String[] = ['Teleport Options', 'Voice Settings', 'Kick Options', 'Player Movement', 'World Settings']
   private mainMenuPages: MenuItem[] = [
       {label: 'Back', onClick: (modPlayer:Player, targetPlayer:Player)=>{
-        this.ShowPlayerList();
+        this.ShowPlayerList(modPlayer);
         }, color: 'white'},
       {label: 'Player Management', onClick: (modPlayer:Player, targetPlayer:Player) => {
               this.currentPage = 'PlayerManagement';
@@ -615,16 +625,12 @@ class ModTool extends UIComponent {
     }
     // Update the displayed list of players if it is currently being accessed
     if (this.currentPage == 'PlayerList') {
-      this.ShowPlayerList()
+      this.ShowPlayerList(<Player>this.currentOwner);
     }
   }
   RemoveFromPlayerList(player:Player){
     if (this.playerList.find((p:Player)=>p.name.get() == player.name.get())){
       this.playerList.splice(this.playerList.indexOf(<Player>this.playerList.find((p: Player) => p.name.get() == player.name.get())),1)
-    }
-    // Update the displayed list of players if it is currently being accessed
-    if (this.currentPage == 'PlayerList') {
-      this.ShowPlayerList()
     }
   }
 
@@ -633,6 +639,7 @@ class ModTool extends UIComponent {
     this.playerList.push(...this.world.getPlayers());
     this.playerList.forEach((player:Player) => {this.BanCheck(player)})
     this.BuildTeleportPages();
+    this.currentOwner = this.world.getServerPlayer();
     this.connectCodeBlockEvent(
         this.entity,
         CodeBlockEvents.OnPlayerEnterWorld,
@@ -647,8 +654,10 @@ class ModTool extends UIComponent {
           this.PlayerExitWorld(player)
 
         }
-    )
-    this.ShowPlayerList()
+    );
+    this.connectLocalBroadcastEvent(resetEvent, (data:{message:Player})=>{
+        this.Reset(data.message);
+    });
   }
   PlayerEnterWorld(player: Player) {
     this.AddToPlayerList(player);
@@ -659,7 +668,7 @@ class ModTool extends UIComponent {
     this.RemoveFromPlayerList(player)
     if (this.grabbedPlayers.has(player)){this.grabbedPlayers.delete(player)}
   }
-  ShowPlayerList(){
+  ShowPlayerList(player:Player){
     this.currentPage = 'PlayerList';
     this.targetPlayerNameText.set(' ');
     this.errorText.set(' ');
