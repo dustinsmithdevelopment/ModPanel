@@ -119,7 +119,12 @@ class ModToolSummon extends Component<typeof ModToolSummon> {
     }
     this.modToolOwner = this.world.getServerPlayer();
     this.connectCodeBlockEvent(this.entity, CodeBlockEvents.OnPlayerEnterWorld, (player:Player)=>{this.TrackPlayer(player)});
-    this.connectCodeBlockEvent(this.entity, CodeBlockEvents.OnPlayerExitWorld, (player:Player)=>{this.RemoveTrackedPlayer(player)});
+    this.connectCodeBlockEvent(this.entity, CodeBlockEvents.OnPlayerExitWorld, (player:Player)=>{
+      this.RemoveTrackedPlayer(player);
+      if (this.modToolOwner?.id === player.id){
+        this.UnassignModTool();
+      }
+    });
     this.async.setInterval(()=>{this.CheckHands()}, 5000);
     this.UnassignModTool()
     this.startUpdate();

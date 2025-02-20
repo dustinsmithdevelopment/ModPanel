@@ -7,7 +7,7 @@
 // Variables as numbers: Role, Rooms, Permissions, BanStatus, BanTime, KickCount, VisitCount, TimeInWorld
 
 // Enter your name below
-const WORLD_OWNER = 'TechGryphon';
+export const WORLD_OWNER: string = 'TechGryphon';
 
 
 import {Binding, DynamicList, Pressable, Text, UIComponent, UINode, View} from 'horizon/ui';
@@ -66,7 +66,8 @@ const roleValues = getRoles(ROLES);
 export const managerRoleValue:number = roleValues.find(role => role.name === 'Manager').roleLevelValue;
 // @ts-ignore: Value is defined in above function but compiler is unable to see it when type checking
 export const moderatorRoleValue:number = roleValues.find(role => role.name === 'Moderator').roleLevelValue;
-
+// @ts-ignore: Value is defined in above function but compiler is unable to see it when type checking
+export const ownerRoleValue:number = roleValues.find(role => role.name === 'Owner').roleLevelValue;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
