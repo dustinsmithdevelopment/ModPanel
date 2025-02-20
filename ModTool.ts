@@ -59,6 +59,8 @@ function getRoles(roles: { [key: string]: RoleData }): RoleValue[] {
 
 
 
+
+
 const roleValues = getRoles(ROLES);
 // @ts-ignore: Value is defined in above function but compiler is unable to see it when type checking
 export const managerRoleValue:number = roleValues.find(role => role.name === 'Manager').roleLevelValue;
@@ -97,9 +99,14 @@ export class ModTool extends UIComponent {
     Room2: { type: PropTypes.Entity},
   };
   private currentOwner: Player | undefined;
+  
   public Reset(player:Player){
       this.currentOwner = player;
-      this.ShowPlayerList(player);
+      this.ShowPlayerList();
+  }
+  private printWorld(player:string){
+      console.log('world')
+      console.log(player)
   }
 
   private currentPage = 'PlayerList'
@@ -128,9 +135,10 @@ export class ModTool extends UIComponent {
     tempList.push(this.displayGap);
     tempList.push(Pressable({
       children: Text({text: 'Cancel Reset', style: {color: 'green', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
-      onClick: (player:Player) => {this.ShowPlayerList(<Player>this.currentOwner)}
+      onClick: (player:Player) => {this.ShowPlayerList()}
     }));
-    this.displayListBinding.set(tempList);
+    this.displayListBinding.reset();
+      this.displayListBinding.set(tempList, [<Player>this.currentOwner]);
   }
   private noPlayersText = [Text({text: 'No Players', style: {fontSize:PREFERRED_FONT_SIZE, color: 'yellow', textAlign: 'center'}})]
   displayListBinding = new Binding<UINode[]>([]);
@@ -138,7 +146,7 @@ export class ModTool extends UIComponent {
   private controlledMenuPages:String[] = ['Teleport Options', 'Voice Settings', 'Kick Options', 'Player Movement', 'World Settings']
   private mainMenuPages: MenuItem[] = [
       {label: 'Back', onClick: (modPlayer:Player, targetPlayer:Player)=>{
-        this.ShowPlayerList(modPlayer);
+        this.ShowPlayerList();
         }, color: 'white'},
       {label: 'Player Management', onClick: (modPlayer:Player, targetPlayer:Player) => {
               this.currentPage = 'PlayerManagement';
@@ -470,6 +478,7 @@ export class ModTool extends UIComponent {
           Text({text: 'Visits: ' + playerVisits, style: {color: 'limegreen', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}}),
           Text({text: 'Kicks: ' + playerKicks, style: {color: 'limegreen', fontSize: PREFERRED_FONT_SIZE, textAlign: 'center'}})
       ];
+      this.displayListBinding.reset();
       this.displayListBinding.set(statList);
   }
 
@@ -597,7 +606,8 @@ export class ModTool extends UIComponent {
         }
         }));
     })
-    this.displayListBinding.set(tempList);
+    this.displayListBinding.reset();
+      this.displayListBinding.set(tempList, [<Player>this.currentOwner]);
   }
 
 
@@ -625,7 +635,7 @@ export class ModTool extends UIComponent {
     }
     // Update the displayed list of players if it is currently being accessed
     if (this.currentPage == 'PlayerList') {
-      this.ShowPlayerList(<Player>this.currentOwner);
+      this.ShowPlayerList();
     }
   }
   RemoveFromPlayerList(player:Player){
@@ -668,11 +678,12 @@ export class ModTool extends UIComponent {
     this.RemoveFromPlayerList(player)
     if (this.grabbedPlayers.has(player)){this.grabbedPlayers.delete(player)}
   }
-  ShowPlayerList(player:Player){
+  ShowPlayerList(){
     this.currentPage = 'PlayerList';
     this.targetPlayerNameText.set(' ');
     this.errorText.set(' ');
     if (this.playerList.length === 0) {
+      this.displayListBinding.reset();
       this.displayListBinding.set(this.noPlayersText);
     }else {
       this.CreatePlayerList();
@@ -686,7 +697,8 @@ export class ModTool extends UIComponent {
         onClick: (player:Player) => {page.onClick(player, targetPlayer)}
       }));
     })
-    this.displayListBinding.set(tempList);
+    this.displayListBinding.reset();
+      this.displayListBinding.set(tempList, [<Player>this.currentOwner]);
   }
 
   ShowMainMenuOptions(modPlayer:Player, targetPlayer:Player){
@@ -709,7 +721,8 @@ export class ModTool extends UIComponent {
     })
     tempList.push(this.displayGap);
     tempList.push(this.resetButton);
-    this.displayListBinding.set(tempList);
+    this.displayListBinding.reset();
+      this.displayListBinding.set(tempList, [<Player>this.currentOwner]);
   }
 
   ShowTeleportOptionsMenuOptions(modPlayer:Player, targetPlayer:Player){
@@ -760,7 +773,8 @@ export class ModTool extends UIComponent {
         }));
       }
     })
-    this.displayListBinding.set(tempList);
+    this.displayListBinding.reset();
+      this.displayListBinding.set(tempList, [<Player>this.currentOwner]);
 
   }
   ShowPlayerRoomsAccess(modPlayer:Player, targetPlayer:Player){
@@ -831,7 +845,8 @@ export class ModTool extends UIComponent {
         }
       }));
     }
-    this.displayListBinding.set(tempList);
+    this.displayListBinding.reset();
+      this.displayListBinding.set(tempList, [<Player>this.currentOwner]);
   }
   ShowPlayerPermissions(modPlayer:Player, targetPlayer:Player){
     this.currentPage = 'PlayerPermissions';
@@ -902,7 +917,8 @@ export class ModTool extends UIComponent {
         }
       }));
     }
-    this.displayListBinding.set(tempList);
+    this.displayListBinding.reset();
+      this.displayListBinding.set(tempList, [<Player>this.currentOwner]);
   }
   initializeUI() {
 
